@@ -1,0 +1,32 @@
+
+
+.body-dynamic-font-size {
+    font-size: 2vw;
+}
+
+.main-tbl-inputs {
+    max-width: 10vw;
+}
+
+.buy-btn {
+    color: #fff;
+    background-color: #007805;
+    border-color: #007805;
+}
+
+.sell-btn {
+    color: #fff;
+    background-color: #c10707;
+    border-color: #c10707;
+}
+
+
+.table.redandboldtext {
+    color: #c10707;
+    font-weight: bold;
+}
+
+.greenandboldtext {
+    color: #007805;
+    font-weight: bold;
+}
