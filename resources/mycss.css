@@ -1,32 +1,93 @@
 
+.fine-text {
+    --bs-body-font-size: 0.8rem;
+    --bs-body-font-weight: 350;
+    --bs-body-line-height: 21px;
+}
 
-.body-dynamic-font-size {
-    font-size: 2vw;
+
+.table {
+    margin-bottom: 0.5rem;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.3rem 0.3rem;
 }
 
 .main-tbl-inputs {
-    max-width: 10vw;
+    border: none;
+    max-width: 8vw;
+    background: #454b50;
+    color: white;
+
+}
+
+/*.maxwidthcol {*/
+/*    max-width: 8vw;*/
+/*}*/
+
+.addtickerinput {
+    border: none;
+    max-width: 14vw;
+    background: #2c3034;
+    color: #00B4C9;
+}
+
+
+.table > :not(caption) > * > .main-tbl-inputs {
+    padding-right: 1px;
+}
+
+@keyframes blinkingRedBackground{
+    50%		{ background-color: rgba(193, 7, 7, 0.6);}
+}
+@keyframes blinkingGreenBackground{
+    50%		{ background-color: rgba(0, 120, 5, 0.6);}
+}
+
+
+.ticker-cell {
+    color: #00B4C9;
+}
+
+.ticker-cell-alert-up {
+    color: #00B4C9;
+    animation: blinkingGreenBackground 2s infinite;
+}
+
+.ticker-cell-alert-down {
+    color: #00B4C9;
+    animation: blinkingRedBackground 2s infinite;
+}
+
+
+.table > :not(caption) > * > * {
+    background-color: #2c3034;
 }
 
 .buy-btn {
     color: #fff;
+    border: none;
     background-color: #007805;
     border-color: #007805;
 }
 
 .sell-btn {
     color: #fff;
+    border: none;
     background-color: #c10707;
     border-color: #c10707;
 }
 
 
-.table.redandboldtext {
-    color: #c10707;
-    font-weight: bold;
+.addticker-btn {
+    border: none;
 }
 
-.greenandboldtext {
-    color: #007805;
-    font-weight: bold;
+
+.cancelAlert-btn {
+    border: none;
+    background: none;
+    color: white;
 }
+

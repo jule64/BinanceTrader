@@ -7,24 +7,19 @@ const http = require('http').createServer(app);
 const socketio = require('socket.io')(http);
 
 
-console.log = function() {}
 
 apicreds = {
     "KEY": "",
     "SECRET": ""
 }
 const {WebsocketClient, RestClient} = require("ftx-api");
-const ftxWS = new WebsocketClient(apicreds)
+const ftxWS = new WebsocketClient({key: apicreds.KEY, secret: apicreds.SECRET });
 const ftxRestCli = new RestClient(apicreds.KEY, apicreds.SECRET);
+
 
 let subscribedTickers = []
 
 app.use(express.static(__dirname))
-app.get("/", (req, res) => {
-  console.log('received get request');
-  res.sendFile(__dirname + '/index.html');
-
-});
 
 
 const upalerts = new Map();
@@ -36,7 +31,14 @@ async function updateBalances(tblTickers, ftxRestCli, sio) {
     const coinToBalance =  balances.result.reduce((p, c) => {
         p.set(c.coin,c);
         return p;}, new Map());
-    sio.emit('balances:update', tblTickers.map(t => [t, coinToBalance.get(t.split('/')[0])]));
+
+    const balancesMap = tblTickers.map(t => [t, coinToBalance.get(t.split('/')[0])]);
+
+    if(balancesMap.length === 1){
+        sio.emit('balances:singleupdate', balancesMap);
+    } else {
+        sio.emit('balances:update', balancesMap);
+    }
 }
 
 function initFTXOps(sio, ws, rc) {
@@ -44,7 +46,9 @@ function initFTXOps(sio, ws, rc) {
       sio.on('connection', (socket) => {
         socket.on('price:subs', function(tickersRequested) {
 
-          tickersNotSubscribedYet = tickersRequested.filter(v => !subscribedTickers.includes(v))
+
+          tickersNotSubscribedYet = tickersRequested.filter(v => !subscribedTickers.includes(v));
+          console.log('subscribing to live price updates for ', tickersNotSubscribedYet);
 
           topics = tickersNotSubscribedYet.map((v) => {
               return {'channel': 'trades',
@@ -52,15 +56,17 @@ function initFTXOps(sio, ws, rc) {
           })
           subscribedTickers = subscribedTickers.concat(tickersNotSubscribedYet);
           ws.subscribe(topics);
+
         });
 
         socket.on('orders:new-morder', (marketOrder) => {
+            console.info('received market order', marketOrder);
             rc.placeOrder(marketOrder).then(
                 resp => {
-                    console.info(resp);
+                    console.info('order executed', resp);
                     updateBalances([resp.result.market], rc, sio);
                     },
-                resp => console.info(resp)
+                resp =>  console.warn('order execution failed', resp)
             );
         });
 
@@ -76,7 +82,12 @@ function initFTXOps(sio, ws, rc) {
         });
 
         socket.on('balances:get', async (tblTickers) => {
+            try {
                 updateBalances(tblTickers, rc, sio);
+
+            } catch (e) {
+                console.log(e);
+            }
             });
         });
 
@@ -85,12 +96,13 @@ function initFTXOps(sio, ws, rc) {
 
     ws.on('response', response => {
         console.log('response', response);
-    })
+    });
 
     ws.on('update', data => {
-        console.log(`update:${data.type}`, data);
+        // this is still printing even with debug level set to false..
+        // console.debug(`update:${data.type}`, data);
         if(data.type === "subscribed") {
-            console.warn('subscribed events not handled yet');
+            console.log('received a subscription confirmation for', data);
         } else if (data.type === "update") {
             if(data.channel === "trades") {
                 largestTrade = extractLargestTrade(data.data)
@@ -99,16 +111,22 @@ function initFTXOps(sio, ws, rc) {
                     priceObj: largestTrade,
                     tradeVolume: largestTrade.price * largestTrade.size
                 }
-                sio.emit('price:update', priceUpdate);
 
                 const uplevel = upalerts.get(priceUpdate.ticker);
                 const downlevel = downalerts.get(priceUpdate.ticker);
 
+                alertObj = { ticker: null, direction: null};
                 if(uplevel != null && priceUpdate.priceObj.price > uplevel){
-                    sio.emit('alerts:triggered-up', priceUpdate);
+                    alertObj.ticker = priceUpdate.ticker;
+                    alertObj.direction = 'up';
                 } else if(downlevel != null && priceUpdate.priceObj.price < downlevel){
-                    sio.emit('alerts:triggered-down', priceUpdate);
+                    alertObj.ticker = priceUpdate.ticker;
+                    alertObj.direction = 'down';
+                } else if(uplevel != null || downlevel != null) {
+                    alertObj.ticker = priceUpdate.ticker;
+                    alertObj.direction = null; // means not triggered or untriggered (from up or down)
                 }
+                sio.emit('price:update', [priceUpdate, alertObj]);
 
             } else if(data.channel === "fills") {
                 console.warn('fills events not handled yet');
