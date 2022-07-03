@@ -1,10 +1,8 @@
 # FTX Trader
 
-Welcome to FTX Trader! A smarter and faster front end for trading cryptos on the FTX Exchange.  
+A fast, minimalist front end for trading cryptos on the FTX Exchange.
 
 ![v1.1.png](misc/v1.1.png)
-
-_FTX Trade screenshot (v.1.1)_
 
 
 ## Background
@@ -14,27 +12,27 @@ very well adapted to the rapid-fire, action-first type of trading that some trad
 the order booking system is a bit clunky to use and requires too many manual steps to set up new orders and manage pending orders which ultimately
 slows down the trading worflow. It is also not very good for monitoring positions and pnl in realtime and there is no price alert functionality. 
 
-This app aims to fix some of those issues by providing an alternative, compact and minimalist front end which focuses on fast order placement,
+This app aims to fix some of those issues by providing an alternative front end which focuses on fast order placement,
 easy order management and intuitive position monitoring and alerting.
 
 
 ## How to install
+After cloning this project simply run npm install and run the main file:
 ```
-git clone git@github.com:jule64/FTXTrader.git
 npm install
 node FTXTrading.js
 ```
 
-## Tech stack (v1.1)
-The app runs on a nodejs backend and a light weight html front end with bootstrap css.  The front/back communication is done using socketio.
-
-The communication with the FTX Exchange is done using [tiagosiebler](https://github.com/tiagosiebler)'s [FTX Api](https://github.com/tiagosiebler/ftx-api) library.
+## Tech stack
+The app runs on Nodejs with a light weight html front end and bootstrap css.
+We use [tiagosiebler](https://github.com/tiagosiebler)'s [FTX Api](https://github.com/tiagosiebler/ftx-api) library
+for all the realtime prices and rest operations with the FTX Exchange.
 
 
 ## Disclaimer
 This app is my personal project and is NOT affiliated to the FTX Exchange.  I use it for my own trading but also for 
-experimenting with nodejs development and various types of trading ideas. It is constantly evolving and **I make no guaranty as to it's safety for realtime trading!**  
-Therefore if you are considering using this app to trade I highly recommend familiarising yourself with the code before 
+experimenting with nodejs developement and explore trading ideas. It is constantly evolving and **I make no guaranty as to it's safety for realtime trading!**  
+Therefore if you are considering using this app to trade I highly recommend first familiarising yourself with the code before 
 attempting any trading with it!
 
 
