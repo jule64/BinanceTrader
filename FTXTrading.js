@@ -1,30 +1,37 @@
 
 
-const express = require("express")
-const app = express()
+const express = require("express");
+const {WebsocketClient, RestClient} = require("ftx-api");
+const app = express();
 
 const http = require('http').createServer(app);
 const socketio = require('socket.io')(http);
 
 
+const configs = require('./config/config.js');
 
-apicreds = {
-    "KEY": "",
-    "SECRET": ""
+const apikeys = configs.apikeys;
+
+if(apikeys.key === "" || apikeys.secret === "") {
+    console.info("ERROR: Missing apikey and apisecret variables in config/config.js");
+    process.exit();
 }
-const {WebsocketClient, RestClient} = require("ftx-api");
-const ftxWS = new WebsocketClient({key: apicreds.KEY, secret: apicreds.SECRET });
-const ftxRestCli = new RestClient(apicreds.KEY, apicreds.SECRET);
+
+const ftxWS = new WebsocketClient({key: apikeys.key, secret: apikeys.secret });
+const ftxRestCli = new RestClient(apikeys.key, apikeys.secret);
 
 
 let subscribedTickers = []
 
-app.use(express.static(__dirname))
+app.use(express.static(__dirname));
 
 
 const upalerts = new Map();
 const downalerts = new Map();
 
+var Deque = require("collections/deque");
+const tickersToLast10VolQueues = new Map();
+const VOLUMES_QUEUE_SIZE = 20
 
 async function updateBalances(tblTickers, ftxRestCli, sio) {
     const balances = await ftxRestCli.getBalances();
@@ -39,6 +46,24 @@ async function updateBalances(tblTickers, ftxRestCli, sio) {
     } else {
         sio.emit('balances:update', balancesMap);
     }
+}
+
+function getAlertsForPrice(priceUpdate) {
+    const uplevel = upalerts.get(priceUpdate.ticker);
+    const downlevel = downalerts.get(priceUpdate.ticker);
+
+    alertObj = {ticker: null, direction: null};
+    if (uplevel != null && priceUpdate.priceObj.price > uplevel) {
+        alertObj.ticker = priceUpdate.ticker;
+        alertObj.direction = 'up';
+    } else if (downlevel != null && priceUpdate.priceObj.price < downlevel) {
+        alertObj.ticker = priceUpdate.ticker;
+        alertObj.direction = 'down';
+    } else if (uplevel != null || downlevel != null) {
+        alertObj.ticker = priceUpdate.ticker;
+        alertObj.direction = null; // means not triggered or untriggered (from up or down)
+    }
+    return alertObj;
 }
 
 function initFTXOps(sio, ws, rc) {
@@ -83,6 +108,7 @@ function initFTXOps(sio, ws, rc) {
 
         socket.on('balances:get', async (tblTickers) => {
             try {
+                console.info('updating balances for', tblTickers);
                 updateBalances(tblTickers, rc, sio);
 
             } catch (e) {
@@ -105,28 +131,10 @@ function initFTXOps(sio, ws, rc) {
             console.log('received a subscription confirmation for', data);
         } else if (data.type === "update") {
             if(data.channel === "trades") {
-                largestTrade = extractLargestTrade(data.data)
-                priceUpdate = {
-                    ticker : data.market,
-                    priceObj: largestTrade,
-                    tradeVolume: largestTrade.price * largestTrade.size
-                }
+                const priceUpdate = handlePriceUpdate(data);
+                const alerts = getAlertsForPrice(priceUpdate);
+                sio.emit('price:update', [priceUpdate, alerts]);
 
-                const uplevel = upalerts.get(priceUpdate.ticker);
-                const downlevel = downalerts.get(priceUpdate.ticker);
-
-                alertObj = { ticker: null, direction: null};
-                if(uplevel != null && priceUpdate.priceObj.price > uplevel){
-                    alertObj.ticker = priceUpdate.ticker;
-                    alertObj.direction = 'up';
-                } else if(downlevel != null && priceUpdate.priceObj.price < downlevel){
-                    alertObj.ticker = priceUpdate.ticker;
-                    alertObj.direction = 'down';
-                } else if(uplevel != null || downlevel != null) {
-                    alertObj.ticker = priceUpdate.ticker;
-                    alertObj.direction = null; // means not triggered or untriggered (from up or down)
-                }
-                sio.emit('price:update', [priceUpdate, alertObj]);
 
             } else if(data.channel === "fills") {
                 console.warn('fills events not handled yet');
@@ -136,6 +144,22 @@ function initFTXOps(sio, ws, rc) {
     })
 }
 
+function handlePriceUpdate(data) {
+
+    const ticker = data.market;
+    const trades = data.data;
+    const largestTrade = extractLargestTrade(trades, ticker);
+    const last10VolumesQ = updateAndReturnLast10VolumesMap(trades, ticker);
+    const sumLast10Volumes = last10VolumesQ.reduce((r, v) => r + v, 0);
+
+    priceUpdate = {
+        ticker: ticker,
+        priceObj: largestTrade,
+        tradeVolume: sumLast10Volumes
+    }
+
+    return priceUpdate;
+}
 
 function extractLargestTrade(trades) {
     return trades.sort((a, b) =>
@@ -143,9 +167,26 @@ function extractLargestTrade(trades) {
     ).slice(-1)[0]
 }
 
+function updateAndReturnLast10VolumesMap(trades, ticker) {
+
+    var volumeQ = tickersToLast10VolQueues.get(ticker);
+    if(volumeQ === undefined) {
+        volumeQ = new Deque();
+        tickersToLast10VolQueues.set(ticker, volumeQ);
+    }
+
+    trades.forEach(t => {
+        volumeQ.push(t.size * t.price);
+        if(volumeQ.length > VOLUMES_QUEUE_SIZE) {
+            volumeQ.shift();
+        }
+    });
+    return volumeQ;
+}
+
 const appPort = 5001
 http.listen(appPort, () => {
-  console.info(`Server is up and running on ${appPort} ...`);
   initFTXOps(socketio, ftxWS, ftxRestCli)
+  console.info(`Open browser on http://localhost:${appPort}`);
 });
 
