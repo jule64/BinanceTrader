@@ -8,12 +8,9 @@ const http = require('http').createServer(app);
 const socketio = require('socket.io')(http);
 
 
-const configs = require('./config/config.js');
-
-const apikeys = configs.apikeys;
-
+const apikeys = require('./apikeys/apikeys.json');
 if(apikeys.key === "" || apikeys.secret === "") {
-    console.info("ERROR: Missing apikey and apisecret variables in config/config.js");
+    console.info("ERROR: Missing API keys.  There are no api key/secret in /apikeys/apikeys.json");
     process.exit();
 }
 
