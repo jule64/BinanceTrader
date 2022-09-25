@@ -17,6 +17,7 @@
     "express": "4.18.1",
     "ftx-api": "^1.1.11",
     "howler": "^2.2.3",
+    "optional-js": "^2.3.0",
     "play-sound": "^1.1.5",
     "socket.io": "^4.1.2"
   },

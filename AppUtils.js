@@ -91,16 +91,16 @@ class Logger {
 
     static _log(fun, msg, arg) {
         if(arg === undefined){
-            fun(this.addTimeStampToMsg(msg));
+            fun(this.wrapMessageWithTimeStampAndAppName(msg));
         } else {
-            fun(this.addTimeStampToMsg(msg), arg);
+            fun(this.wrapMessageWithTimeStampAndAppName(msg), arg);
         }
     }
 
 
-    static addTimeStampToMsg(msg) {
+    static wrapMessageWithTimeStampAndAppName(msg) {
         const timeStr = new Date().toLocaleTimeString();
-        return `${timeStr}: ${msg}`;
+        return `${timeStr}: FTXTrader: ${msg}`;
     }
 
 }

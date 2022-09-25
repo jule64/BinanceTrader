@@ -40,7 +40,7 @@ async function buildCoinCostMap(tickersList, bookCostmap, ftxRestCli) {
 
 }
 
-async function reBuildBookCostForTicker(ticker, bookCostmap, ftxRestCli) {
+function reBuildBookCostForTicker(ticker, bookCostmap, balances, orderHistory) {
 
     const coin = CoinUtils.parseCoinFromTicker(ticker);
 
@@ -49,8 +49,6 @@ async function reBuildBookCostForTicker(ticker, bookCostmap, ftxRestCli) {
     }
 
     bookCostmap.delete(coin);
-    const balances = await ftxRestCli.getBalances();
-    const orderHistory = await ftxRestCli.getOrderHistory({market: ticker});
 
     res = calculateCoinCost(coin, balances.result, orderHistory.result);
     bookCostmap.set(ticker, res);

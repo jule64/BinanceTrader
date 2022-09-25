@@ -1,5 +1,6 @@
 {
-  "tickerWatchlist": ["ETH/USD", "BTC/USD", "FTT/USD", "ETHBULL/USD", "DOT/USD", "FTM/USD", "DYDX/USD", "UNI/USD", "MKR/USD", "AAVE/USD", "BNB/USD"],
-  "totalFunding": 12471,
+  "tickerWatchlist": ["ETH/USD", "BTC/USD", "ETHBULL/USD", "FTM/USD", "DOT/USD",
+    "FTT/USD", "LDO/USD","CVX/USD"],
+  "totalFunding": 0,
   "accountCcy": "USD"
 }

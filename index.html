@@ -54,7 +54,10 @@
 
 <div>
   <input id='addtickerinput' class="addtickerinput">
-  <button class="btn-dark, addticker-btn" style="background: dimgrey" onclick="addTickerToMainTable(document.getElementById('addtickerinput').value)">Add ticker</button>
+  <button class="btn-dark, addticker-btn" style="background: dimgrey"
+          onclick="addTickerToMainTable(document.getElementById('addtickerinput').value)">
+    Add ticker
+  </button>
 </div>
 
 
@@ -63,23 +66,23 @@
 
 <script>
 
-  const socket = io();
+  getAppData().then(data => startApp(data));
 
-  getAppData().then(v => initApp(v));
-
-  async function getAppData() {
+  function getAppData() {
     return fetch('./resources/appData.json').then(resp => resp.json());
   }
 
-  function initApp(appData) {
+  async function startApp(appData) {
+
+    const socket = io();
+
     const totalFundingUSD = appData.totalFunding;
     tblTickers = appData.tickerWatchlist;
-    allTickers = tblTickers.concat([appData.accountCcy]); // USD
 
     var tblbody = getTableBodyMainTbl();
 
     tblTickers.forEach((tkr) => {
-      addRowToTable(tkr, tblbody);
+      addRowToTable(socket, tkr, tblbody);
     })
 
 
@@ -92,7 +95,7 @@
       // console.log(ticker, pUpdate.priceObj);
       document.getElementById('fprice:' + ticker).textContent = pUpdate.priceObj.price;
       document.getElementById('fqty:' + ticker).textContent = Math.round(pUpdate.tradeVolume).toLocaleString('en-US');
-      document.getElementById('fcoinpnl:' + ticker).textContent = calculateCoinPnl(document.getElementById('fbalanceUSD:' + ticker).textContent, pUpdate.bookCost);
+      document.getElementById('fcoinpnl:' + ticker).textContent = calculateCoinPnl(document.getElementById('fcoinbalance:' + ticker).textContent,  pUpdate.priceObj.price, pUpdate.bookCost);
 
       const alert = arr[1];
       if (alert.ticker != null) {
@@ -100,11 +103,11 @@
         if (alert.direction === 'up') {
           console.log("up alert triggered for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell-alert-up';
-          playSound(soundEffects.alertpriceup);
+          Sounds.playSound(Sounds.soundEffects.alertpriceup);
         } else if (alert.direction === 'down') {
           console.log("down alert triggered for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell-alert-down';
-          playSound(soundEffects.alertpricedown);
+          Sounds.playSound(Sounds.soundEffects.alertpricedown);
         } else {
           console.log("untriggered alert for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell';
@@ -113,15 +116,10 @@
     });
 
 
-    socket.emit('balances:get', allTickers);
-    var intervalId = window.setInterval(function () {
-      socket.emit('balances:get', allTickers);
-    }, 20000);
-
-    socket.on('balances:update', function (tickersBalance) {
+    socket.on('balances:update', function (balance) {
       console.log("received balances update");
       totalBalance = 0;
-      tickersBalance.forEach(arr => {
+      balance.balancesMap.forEach(arr => {
         const ticker = arr[0];
         const balance = arr[1];
 
@@ -133,29 +131,16 @@
             document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(balance.usdValue);
             document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance.total);
           }
-          totalBalance += balance.usdValue;
-
         }
 
       })
-      document.getElementById('acc_totalBalance').textContent = roundAndFormat(totalBalance);
-
-      document.getElementById('acc_pnl').textContent = roundAndFormat(totalBalance - totalFundingUSD);
-
-
-    });
-
-    socket.on('balances:singleupdate', function (tickersBalance) {
-      console.log("received single balance update");
-      const ticker = tickersBalance[0][0];
-      const balance = tickersBalance[0][1];
-      document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(balance.usdValue);
-      document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance.total);
+      document.getElementById('acc_totalBalance').textContent = roundAndFormat(balance.totalUSDBalance);
+      document.getElementById('acc_pnl').textContent = roundAndFormat(balance.totalUSDBalance - totalFundingUSD);
     });
 
     socket.on('orders:fill', function (fill) {
       console.log("received fill for" + fill.market);
-      playSound(soundEffects.orderfill);
+      Sounds.playSound(Sounds.soundEffects.orderfill);
     });
   }
 
@@ -163,28 +148,25 @@
       return document.getElementById('maintbl').getElementsByTagName('tbody')[0];
    }
 
-   function calculateCoinPnl(positionValueStr, bookCost) {
+   function calculateCoinPnl(positionValueStr, price, bookCost) {
 
-    if(positionValueStr === ""){
+    positionValue = Number(positionValueStr === "" ? "0" : positionValueStr.replace(",",""));
+
+    if(positionValue === 0)
       return "-";
-    }
 
-    positionValue = Number(positionValueStr.split(",").reduce((r,v) => r + v,""));
-
-     return roundAndFormat(positionValue - bookCost);
+     return roundAndFormat(positionValue *  price - bookCost);
    }
 
-  function setAlert(ticker, alertlevel, currPrice) {
-    const alertObj = {ticker: ticker, alertlevel: alertlevel};
-    if (alertlevel > currPrice) {
-      socket.emit('alerts:up-alert', alertObj);
-    } else {
-      socket.emit('alerts:down-alert', alertObj);
-    }
-    console.log("new alert set for ", ticker);
+  function setAlert(socket, ticker, alertlevel, currPrice) {
+    const direction = alertlevel > currPrice ? "up" : "down";
+    const alertObj = { ticker: ticker, direction: direction, alertlevel: alertlevel };
+    console.log("sending new alert", alertObj);
+    socket.emit('alerts:new-alert', alertObj);
+    Sounds.playSound(Sounds.soundEffects.alertSet);
   }
 
-  function cancelAlerts(tkr, alertBox) {
+  function cancelAlerts(socket, tkr, alertBox) {
     console.log("cancelling all alerts for", tkr);
     socket.emit('alerts:cancel-alerts', tkr);
     document.getElementById('fticker:' + tkr).className = 'ticker-cell';
@@ -202,11 +184,12 @@
 
   function addTickerToMainTable(tkr) {
     //const tkr = document.getElementById('addtickerinput').value;
-    addRowToTable(tkr, getTableBodyMainTbl());
+    const socket = io();
+    addRowToTable(socket, tkr, getTableBodyMainTbl());
     socket.emit('price:subs', [tkr]);
   }
 
-  function addRowToTable(tkr, tblbody) {
+  function addRowToTable(socket, tkr, tblbody) {
 
     row = tblbody.insertRow();
     var tickercell = row.insertCell();
@@ -241,13 +224,13 @@
     var buyBtn = document.createElement('button');
     buyBtn.textContent = 'Buy';
     buyBtn.className = 'buy-btn';
-    buyBtn.addEventListener("click", () => placeMarketOrder(tkr, orderSizeIn.value, 'buy'));
+    buyBtn.addEventListener("click", () => placeMarketOrder(socket, tkr, orderSizeIn.value, 'buy'));
     buyOrderc.appendChild(buyBtn);
 
     var sellBtn = document.createElement('button');
     sellBtn.textContent = 'Sell';
     sellBtn.className = 'sell-btn';
-    sellBtn.addEventListener("click", () => placeMarketOrder(tkr, orderSizeIn.value, 'sell'));
+    sellBtn.addEventListener("click", () => placeMarketOrder(socket, tkr, orderSizeIn.value, 'sell'));
     sellOrderc.appendChild(sellBtn);
 
 
@@ -256,7 +239,7 @@
     alertBox.className = 'main-tbl-inputs';
     alertBox.addEventListener("keypress", (e) => {
       if(e.key === 'Enter'){
-        setAlert(tkr, alertBox.value, pricecell.textContent);
+        setAlert(socket, tkr, alertBox.value, pricecell.textContent);
       }
     });
     alertc.appendChild(alertBox);
@@ -264,32 +247,32 @@
     var cancelBtn = document.createElement('button');
     cancelBtn.textContent = "X";
     cancelBtn.className = 'btn-close-white, cancelAlert-btn';
-    cancelBtn.addEventListener("click", () => cancelAlerts(tkr, alertBox));
+    cancelBtn.addEventListener("click", () => cancelAlerts(socket, tkr, alertBox));
     alertc.appendChild(cancelBtn);
 
 
     var buyLimitBtn = document.createElement('button');
     buyLimitBtn.textContent = 'Buy L';
     buyLimitBtn.className = 'buy-btn';
-    buyLimitBtn.addEventListener("click", () => placeLimitBookOrder(tkr, orderSizeIn.value, 'buy'));
+    buyLimitBtn.addEventListener("click", () => placeLimitBookOrder(socket, tkr, orderSizeIn.value, 'buy'));
     buyLimitOrderc.appendChild(buyLimitBtn);
 
     var sellLimitBtn = document.createElement('button');
     sellLimitBtn.textContent = 'Sell L';
     sellLimitBtn.className = 'sell-btn';
-    sellLimitBtn.addEventListener("click", () => placeLimitBookOrder(tkr, orderSizeIn.value, 'sell'));
+    sellLimitBtn.addEventListener("click", () => placeLimitBookOrder(socket, tkr, orderSizeIn.value, 'sell'));
     sellLimitOrderc.appendChild(sellLimitBtn);
 
     var cancelOrdersBtn = document.createElement('button');
     cancelOrdersBtn.textContent = "X";
     cancelOrdersBtn.className = 'btn-close-white, cancelAlert-btn';
-    cancelOrdersBtn.addEventListener("click", () => cancelOrders(tkr));
+    cancelOrdersBtn.addEventListener("click", () => cancelOrders(socket, tkr));
     cancelOrdersc.appendChild(cancelOrdersBtn);
 
 
   }
 
-  function placeMarketOrder(tickerName, orderSize, orderSide) {
+  function placeMarketOrder(socket, tickerName, orderSize, orderSide) {
     if (orderSize === ""){
       alert("Enter order size");
       return null;
@@ -298,7 +281,7 @@
     order = newMarketOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-market-order', order);
-    playSound(soundEffects.tradeExecMarketOrder);
+    Sounds.playSound(Sounds.soundEffects.tradeExecMarketOrder);
   }
 
   function newMarketOrder(ticker, side, size) {
@@ -311,7 +294,7 @@
     };
   }
 
-   function placeLimitBookOrder(tickerName, orderSize, orderSide) {
+   function placeLimitBookOrder(socket, tickerName, orderSize, orderSide) {
     if (orderSize === ""){
       alert("Enter order size");
       throw "Enter order size"
@@ -320,7 +303,7 @@
     order = newLimitOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-limitbook-order', order);
-    playSound(soundEffects.tradeExecLimitOrder);
+    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
   }
 
   function newLimitOrder(ticker, side, size) {
@@ -334,64 +317,68 @@
        }
   };
 
-  function cancelOrders(tkr) {
-    console.log("cancelling all order for", tkr);
+  function cancelOrders(socket, tkr) {
+    console.log("cancelling all orders for", tkr);
     socket.emit('orders:cancel-orders', tkr);
-    playSound(soundEffects.tradeExecLimitOrder); // find better sound
+    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
   }
 
 
-  function sound_marketorder() {
-    return new Howl({
-      src: ['./resources/soundeffects/trade_execution/460133__eschwabe3__robot-affirmative.wav']
-    });
-  }
 
-  function sound_limitorder() {
-    return new Howl({
-      src: ['./resources/soundeffects/trade_execution/577023__nezuai__ui-sound-14.wav']
-    });
-  }
 
-  function sound_alertpricechange1() {
-    return new Howl({
-      src: ['./resources/soundeffects/price_alerts/490236__phonosupf__french-horn-staccato-3.wav']
-    });
-  }
+  class Sounds {
 
-  function sound_alertpricechange2() {
-    return new Howl({
-      src: ['./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav']
-    });
-  }
-
-  function sound_alertpricechange3() {
-    return new Howl({
-      src: ['./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav']
-    });
-  }
-
-  function sound_orderfill() {
-    return new Howl({
-      src: ['./resources/soundeffects/fills/420505__jfrecords__uprising2.wav']
-    });
-
-  }
-
-  function playSound(s) {
-    if (!s.playing()) {
-      s.play();
+    static soundEffects = {
+      tradeExecMarketOrder: this.marketorder(),
+      tradeExecLimitOrder: this.limitorder(),
+      alertpricedown: this.alertpricechangeDown(),
+      alertpriceup: this.alertpricechangeUp(),
+      orderfill: this.orderfill(),
+      alertSet: this.alertSet()
     }
+
+    static marketorder() {
+      console.log("alerts market order created")
+      return this.createSound('./resources/soundeffects/trade_execution/460133__eschwabe3__robot-affirmative.wav', true);
+    }
+
+    static limitorder() {
+      return this.createSound('./resources/soundeffects/trade_execution/577023__nezuai__ui-sound-14.wav', true);
+    }
+
+    static alertpricechangeUp() {
+      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav')
+    }
+
+    static alertpricechangeDown() {
+      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav');
+    }
+    static orderfill() {
+      return this.createSound('./resources/soundeffects/fills/420505__jfrecords__uprising2.wav', true);
+    }
+
+    static alertSet() {
+      return this.createSound('./resources/soundeffects/price_alerts/186669__fordps3__computer-boop.wav');
+    }
+    static createSound(soundFile, allowInterruptPlay) {
+      return {
+        sound: new Howl({
+          src: [soundFile]
+        }),
+        interruptPlay: allowInterruptPlay !== null
+      };
+
+    }
+
+    static playSound(sound) {
+      if(sound.interruptPlay || !sound.sound.playing()) {
+        sound.sound.play();
+      }
+    }
+
   }
 
-  var soundEffects = {
-    tradeExecMarketOrder: sound_marketorder(),
-    tradeExecLimitOrder: sound_limitorder(),
-    alertpricedown: sound_alertpricechange3(),
-    alertpriceup: sound_alertpricechange2(),
-    orderfill: sound_orderfill(),
 
-  }
 
 </script>
 </body>
