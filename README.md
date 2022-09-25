@@ -8,9 +8,11 @@ A fast, minimalist front end for trading cryptos on the FTX Exchange.
 ## Background
 
 The FTX Exchange is a great venue for trading all kinds of crypto assets and derivatives.  However, the FTX web interface is quite
-un-user friendly and unadapted to day trading workflow.  In particular it lacks a unified view of assets from which orders can be quickly open and closed
-and setting up new orders can be fiddly.  It is also difficult to monitor positions and pnl in realtime 
-and there is no price alert functionality.   All this ultimately gets in the way of the trading workflow and decision making.
+un-user friendly and unadapted to day trading workflow.  For example it lacks a unified view of assets from which orders can be quickly 
+open and closed and setting up new orders is fiddly.  It is also difficult to monitor coin positions and pnl in realtime and there is 
+no price alert functionality. 
+
+All this ultimately gets in the way of the trading workflow and decision making.
 
 This project aims to fix some of those issues by providing an alternative front end which focuses on fast order placement and management, 
 intuitive real time position monitoring and quick price alerting functionalities, all in one view.
@@ -40,8 +42,9 @@ Api keys format:
   "secret": "your-ftx-secret-key"
 }
 ```
+Save the file and you are ready to start the app.
 
-### 3. Save the file and you are ready to start the app:
+### 3. Start the app:
 
 ```
 node App.js
