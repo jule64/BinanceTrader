@@ -44,7 +44,7 @@ Api keys format:
 ### 3. Save the file and you are ready to start the app:
 
 ```
-node FTXTrading.js
+node App.js
 ```
 
 Once started head over to `http://localhost:5001/` on your browser to access the app.
