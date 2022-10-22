@@ -71,9 +71,9 @@ The client-backend communication is done over `socket.io`
 
 
 ## Disclaimer
-This app is own my personal project and is not affiliated with the FTX Exchange.
- 
-I use it for my own trading **BUT I make no guaranty as to it's safety for YOUR trading!**  
+This app is my personal project and is not affiliated with the FTX Exchange.
+
+I use this app daily to trade on the FTX exchange **BUT I make no guaranty as to it's safety for YOUR trading!**  
 
 Note also that this code is constantly changing and can be buggy! So if you are considering using this app for your own trading
 make sure you first understand the code and the risks before attempting any trading with it.
