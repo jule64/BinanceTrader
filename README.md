@@ -1,22 +1,26 @@
 # FTX Trader
 
-A fast, minimalist front end for trading cryptos on the FTX Exchange.
+A fast and minimalist front end for trading cryptos on the FTX Exchange.
 
 ![v1.2.png](resources/app_screenshots/v1.2.png)
 (_version 1.2 screenshot_)
 
 ## Background
 
-The FTX Exchange is a great venue for trading all kinds of crypto assets and derivatives.  However, the FTX web interface is not very well unadapted for day-trading workflow.  For example it lacks a unified view of all assets from which orders can be quickly 
-open and closed and setting up limit orders requires many clicks.  It is also difficult to monitor coin positions and pnl in realtime and there is 
-no price alert functionality. 
+The FTX Exchange is a great venue for trading all kinds of crypto assets and derivatives.  However the FTX web interface is a bit unadapted to the day-trading workflow.  For example it lacks a unified view where assets can be quickly 
+traded and trade orders require many clicks to setup.  It is also difficult to monitor coin positions and pnl in real time and there is no price alerting functionality. 
 
-Ultimately all this gets in the way of the trading workflow and decision making.
+All this ultimately gets in the way of the trading workflow and decision making.
 
-This project aims to fix this by providing an alternative front end which focuses on fast order placement and management, real time position monitoring and quick price alerting functionalities, all in one view.
+This project aims to fix those drawbacks by providing an alternative front end which focuses on fast order placement, order management, real time position monitoring and intuitive price alerting functionalities - all in one view.
 
 
-## How to install
+## Installation
+
+### ❗️Note to first time users:
+A demo version of this app is available in the `demo` branch.  We recommend first time users to try that version first before trying the full-featured version. The demo app is simpler and safer to use as order executions are disabled and it does not require an FTX account and API key.
+
+To use it simply checkout the `demo` branch and follow the instructions in the README doc.
 
 ### 1. Clone the project and run `npm install` (this will to download the libraries defined in FTXTrader/package.json):
 
@@ -27,9 +31,6 @@ npm install
 ```
 
 ### 2. Create a `apikeys.json` file in the `./apikeys` folder and add your FTX api keys to it:
-
-**READ-ONLY APP:**  Note a read-only version of the app is available in the `read-only-app` branch.  
-The read-only version does not require an API key and might be a better option for those wanting to test the app first before using the full feature app.
 
 ```
 cd ./apikeys
@@ -79,7 +80,6 @@ I use this app daily to trade on the FTX exchange **BUT I make no guaranty as to
 Note also that this code is constantly changing and can be buggy! So if you are considering using this app for your own trading
 make sure you first understand the code and the risks before attempting any trading with it.
 
-Note a read-only version of the app is available for those wishing to try that first.  Simply checkout the read-only-app branch and execute step one.
 
 ## App Timeline & Features
 
