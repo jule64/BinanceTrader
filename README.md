@@ -7,15 +7,13 @@ A fast, minimalist front end for trading cryptos on the FTX Exchange.
 
 ## Background
 
-The FTX Exchange is a great venue for trading all kinds of crypto assets and derivatives.  However, the FTX web interface is quite
-un-user friendly and unadapted to day trading workflow.  For example it lacks a unified view of assets from which orders can be quickly 
-open and closed and setting up new orders is fiddly.  It is also difficult to monitor coin positions and pnl in realtime and there is 
+The FTX Exchange is a great venue for trading all kinds of crypto assets and derivatives.  However, the FTX web interface is not very well unadapted for day-trading workflow.  For example it lacks a unified view of all assets from which orders can be quickly 
+open and closed and setting up limit orders requires many clicks.  It is also difficult to monitor coin positions and pnl in realtime and there is 
 no price alert functionality. 
 
-All this ultimately gets in the way of the trading workflow and decision making.
+Ultimately all this gets in the way of the trading workflow and decision making.
 
-This project aims to fix some of those issues by providing an alternative front end which focuses on fast order placement and management, 
-intuitive real time position monitoring and quick price alerting functionalities, all in one view.
+This project aims to fix this by providing an alternative front end which focuses on fast order placement and management, real time position monitoring and quick price alerting functionalities, all in one view.
 
 
 ## How to install
