@@ -63,7 +63,7 @@ class OrderManager {
     }
 
     placeMarketOrder(marketOrder) {
-        return rc.placeOrder(marketOrder);
+        return this.rc.placeOrder(marketOrder);
     }
 }
 
