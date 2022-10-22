@@ -16,10 +16,9 @@ if(apikeys.key === "" || apikeys.secret === "") {
 }
 
 
-const {WebsocketClient, RestClient} = require("ftx-api");
+const {WebsocketClient} = require("ftx-api");
 
-const ftxWS = new WebsocketClient({key: apikeys.key, secret: apikeys.secret });
-const ftxRestCli = new RestClient(apikeys.key, apikeys.secret);
+const ftxWS = new WebsocketClient({});
 
 const {buildCoinCostMap, reBuildBookCostForTicker} = require('./PnL.js');
 const appData = require("./resources/appData.json");
@@ -27,9 +26,9 @@ const appData = require("./resources/appData.json");
 const Optional = require('optional-js');
 const Deque = require("collections/deque");
 
-initApp(socketio, ftxWS, ftxRestCli);
+initApp(socketio, ftxWS);
 
-const appPort = 5001
+const appPort = 5010
 http.listen(appPort, () => {
   Logger.info(`Open browser on http://localhost:${appPort}`);
 
@@ -45,8 +44,8 @@ const tickersToLast10VolQueues = new Map();
 const VOLUMES_QUEUE_SIZE = 20
 
 const balanceObj = {
-    totalUSDBalance: null,
-    balancesMap: new Map()
+    totalUSDBalance: 10000,
+    balancesMap: new Map([["USD", {usdValue: 10000}]])
     }
 
 
@@ -95,41 +94,11 @@ async function getBalances(rc) {
         }));
 }
 
-function updateAppStateBalances(balancesJson) {
-    balanceObj.totalUSDBalance = balancesJson.totalUSDBalance;
-    balanceObj.balancesMap = balancesJson.balancesMap;
-}
-
-function initApp(sio, ws, rc) {
+function initApp(sio, ws) {
 
     Logger.info("initialising app");
 
-    // we add USD as a "ticker". This will give us the cash balance on the account
-    const coinsToUpdate = appData.tickerWatchlist.concat([appData.accountCcy]);
 
-
-    getBalances(rc).then(v =>
-        // initial account balances state
-        v.map(balances =>
-            buildAccountAndCoinBalances(balances, coinsToUpdate))
-            .map(balancesJson => updateAppStateBalances(balancesJson)));
-
-    setInterval(() => {
-        getBalances(rc).then(v =>
-            v.map(balances => buildAccountAndCoinBalances(balances, coinsToUpdate))
-                .map(balancesJson => {
-                    updateAppStateBalances(balancesJson);
-                    Logger.info('sending account and coin balances');
-                    sio.emit('balances:update', balancesJson);
-                }));
-
-    }, 60000);
-
-
-    Logger.log("subscribing to fills");
-    ws.subscribe({channel: 'fills'});
-
-    const om = new OrderManager(rc);
     sio.on('connection', (socket) => {
 
         Logger.info('received socket connection');
@@ -151,35 +120,12 @@ function initApp(sio, ws, rc) {
           subscribedTickers = subscribedTickers.concat(tickersNotSubscribedYet);
           try {
             ws.subscribe(topicsTrades);
-            buildCoinCostMap(tickersNotSubscribedYet, bookCostmap, ftxRestCli);
           } catch(e) {
               Logger.warn("couldn't subscribe to ticker: ", e);
           }
         });
 
-        socket.on('orders:new-market-order', (marketOrder) => {
-            Logger.info('received market order', marketOrder);
-            om.placeMarketOrder(marketOrder).then(
-                resp => Logger.info('order placed', resp)
-            ).catch(err =>  Logger.warn('order placement failed', err))
-        });
-        socket.on('orders:new-limitbook-order', (limitOrder) => {
-            Logger.info("placing limit order for " + limitOrder.market, limitOrder);
-            om.placeLimitOrderFromOrderBook(limitOrder.market, limitOrder.side, limitOrder.size);
-        });
 
-        socket.on('orders:cancel-orders', async (tkr) => {
-            Logger.info("cancelling all pending orders for " + tkr);
-            const resp = await om.getOpenOrders(tkr);
-            if(resp.result.length === 0) {
-                Logger.log("no pending orders found for " + tkr);
-            } else {
-                resp.result.map(async o => {
-                    Logger.log("cancelling order with id " + o.id);
-                    await om.cancelOpenOrder(o.id);
-                });
-            }
-        });
 
 
         socket.on('alerts:new-alert', (alertObj) => {
@@ -192,7 +138,6 @@ function initApp(sio, ws, rc) {
             upalerts.delete(ticker);
             downalerts.delete(ticker);
         });
-
 
     });
 
@@ -213,32 +158,6 @@ function initApp(sio, ws, rc) {
                 const priceUpdate = handlePriceUpdate(data);
                 const alerts = getAlertsForPrice(priceUpdate);
                 sio.emit('price:update', [priceUpdate, alerts]);
-
-            } else if(data.channel === "fills") {
-
-                Logger.info("received a fill for: ", data);
-                const ticker = data.data.market;
-                const fill = {
-                    market: ticker,
-                    size: data.data.size
-                };
-                sio.emit('orders:fill', fill);
-
-                const bal = await getBalances(rc);
-
-                bal.map(balances => buildAccountAndCoinBalances(balances, [ticker]))
-                    .map(balancesJson => {
-                        Logger.info('sending account and coin balances');
-                        sio.emit('balances:update', balancesJson);
-                    });
-
-                bal.map(async balances => {
-                    Logger.info('update book cost for coin');
-                    ftxRestCli.getOrderHistory({market: ticker})
-                        .then(orderHistory =>
-                            reBuildBookCostForTicker(ticker, bookCostmap, balances, orderHistory))
-                        .catch(err => Logger.warn("Error getting order history from FTX", err));
-                });
 
             }
         }
