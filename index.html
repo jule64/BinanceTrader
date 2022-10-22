@@ -281,7 +281,6 @@
     order = newMarketOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-market-order', order);
-    Sounds.playSound(Sounds.soundEffects.tradeExecMarketOrder);
   }
 
   function newMarketOrder(ticker, side, size) {
