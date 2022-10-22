@@ -28,6 +28,9 @@ npm install
 
 ### 2. Create a `apikeys.json` file in the `./apikeys` folder and add your FTX api keys to it:
 
+**READ-ONLY APP:**  Note a read-only version of the app is available in the `read-only-app` branch.  
+The read-only version does not require an API key and might be a better option for those wanting to test the app first before using the full feature app.
+
 ```
 cd ./apikeys
 touch apikeys.json
@@ -76,7 +79,7 @@ I use this app daily to trade on the FTX exchange **BUT I make no guaranty as to
 Note also that this code is constantly changing and can be buggy! So if you are considering using this app for your own trading
 make sure you first understand the code and the risks before attempting any trading with it.
 
-Note a read-only version of the app will be available soon for those wishing to try that first.
+Note a read-only version of the app is available for those wishing to try that first.  Simply checkout the read-only-app branch and execute step one.
 
 ## App Timeline & Features
 
