@@ -6,6 +6,10 @@
           <option name="url" value="https://github.com/convex-eth/platform.git" />
           <option name="userName" value="" />
         </UrlAndUserName>
+        <UrlAndUserName>
+          <option name="url" value="https://github.com/jule64/BinanceTrader.git" />
+          <option name="userName" value="" />
+        </UrlAndUserName>
       </list>
     </option>
     <option name="cloneParentDir" value="$USER_HOME$/code/crypto" />
