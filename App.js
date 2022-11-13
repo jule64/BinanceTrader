@@ -21,7 +21,7 @@ const {WebsocketClient, RestClient} = require("ftx-api");
 const ftxWS = new WebsocketClient({key: apikeys.key, secret: apikeys.secret });
 const ftxRestCli = new RestClient(apikeys.key, apikeys.secret);
 
-const {buildCoinCostMap, reBuildBookCostForTicker} = require('./PnL.js');
+const PnL = require('./PnL');
 const appData = require("./resources/appData.json");
 
 const Optional = require('optional-js');
@@ -151,7 +151,7 @@ function initApp(sio, ws, rc) {
           subscribedTickers = subscribedTickers.concat(tickersNotSubscribedYet);
           try {
             ws.subscribe(topicsTrades);
-            buildCoinCostMap(tickersNotSubscribedYet, bookCostmap, ftxRestCli);
+            PnL.buildCoinCostMap(tickersNotSubscribedYet, bookCostmap, ftxRestCli);
           } catch(e) {
               Logger.warn("couldn't subscribe to ticker: ", e);
           }
@@ -236,7 +236,7 @@ function initApp(sio, ws, rc) {
                     Logger.info('update book cost for coin');
                     ftxRestCli.getOrderHistory({market: ticker})
                         .then(orderHistory =>
-                            reBuildBookCostForTicker(ticker, bookCostmap, balances, orderHistory))
+                            PnL.buildCoinBookCost(CoinUtils.parseCoinFromTicker(ticker), bookCostmap, balances, orderHistory))
                         .catch(err => Logger.warn("Error getting order history from FTX", err));
                 });
 
