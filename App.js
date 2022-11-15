@@ -9,26 +9,26 @@ app.use(express.static(__dirname));
 
 const {OrderManager, Logger, CoinUtils} = require("./AppUtils");
 
-const apikeys = require('./apikeys/apikeys.json');
-if(apikeys.key === "" || apikeys.secret === "") {
-    Logger.warn("Missing API keys.  Please add your api key & secret in ./apikeys/apikeys.json");
-    process.exit();
-}
+const apikey = process.env.APIKEY || 'APIKEY';
+const apisecret = process.env.APISECRET || 'APISECRET';
 
+const { WebsocketClient } = require('binance');
+const wsClient = new WebsocketClient(
+  {
+    api_key: apikey,
+    api_secret: apisecret,
+    beautify: true,
+  }
+);
 
-const {WebsocketClient} = require("ftx-api");
-
-const ftxWS = new WebsocketClient({});
-
-const {buildCoinCostMap, reBuildBookCostForTicker} = require('./PnL.js');
 const appData = require("./resources/appData.json");
 
 const Optional = require('optional-js');
 const Deque = require("collections/deque");
 
-initApp(socketio, ftxWS);
+initApp(socketio, wsClient);
 
-const appPort = 5010
+const appPort = 5001
 http.listen(appPort, () => {
   Logger.info(`Open browser on http://localhost:${appPort}`);
 
@@ -40,8 +40,8 @@ const downalerts = new Map();
 
 const bookCostmap = new Map();
 
-const tickersToLast10VolQueues = new Map();
-const VOLUMES_QUEUE_SIZE = 20
+const tickersToVolObjs = new Map();
+const MAX_VOLUMES_QUEUE_SIZE = 50
 
 const balanceObj = {
     totalUSDBalance: 10000,
@@ -108,21 +108,18 @@ function initApp(sio, ws) {
 
         socket.on('price:subs', function(tickersRequested) {
 
-
           tickersNotSubscribedYet = tickersRequested.filter(v => !subscribedTickers.includes(v));
-          Logger.log('subscribing to live price updates for ', tickersNotSubscribedYet);
 
-          topicsTrades = tickersNotSubscribedYet.map((v) => {
-              return {channel: 'trades',
-                        market: v}
+          tickersNotSubscribedYet.map((ticker) => {
+                 try {
+                    Logger.log("subscribing to real time price updates for ", ticker);
+                    ws.subscribeSpotAggregateTrades(ticker);
+                  } catch(e) {
+                      Logger.warn("couldn't subscribe to ticker ", ticker);
+                  }
           });
 
           subscribedTickers = subscribedTickers.concat(tickersNotSubscribedYet);
-          try {
-            ws.subscribe(topicsTrades);
-          } catch(e) {
-              Logger.warn("couldn't subscribe to ticker: ", e);
-          }
         });
 
 
@@ -143,72 +140,87 @@ function initApp(sio, ws) {
 
 
 
-
-
-    ws.on('response', response => {
-        Logger.log('received a response from ftx: ', response);
+    ws.on('message', (data) => {
+      handleEvent("aggTrade", "spot", data, handleSpotAggregateTrades);
     });
 
-    ws.on('update', async data => {
-        if(data.type === "subscribed") {
-            Logger.log('received a subscription confirmation for', data);
-        } else if (data.type === "update") {
 
-            if(data.channel === "trades") {
-                const priceUpdate = handlePriceUpdate(data);
-                const alerts = getAlertsForPrice(priceUpdate);
-                sio.emit('price:update', [priceUpdate, alerts]);
-
-            }
+    function handleEvent(event, wsMarket, data, callback) {
+        if(data.e === event & data.wsMarket === wsMarket){
+            callback(data);
+        } else {
+            Logger.warn(`unknown event received ${data.e} ${data.wsMarket}`);
         }
-    })
+    }
+
+    function handleSpotAggregateTrades(t){
+
+        const price = Number.parseFloat(t.p);
+        const qty = Number.parseFloat(t.q);
+
+        var trade = {
+            "ticker": t.s,
+            "price": price,
+            "qty": qty,
+            "cons": Math.round(price * qty)
+        }
+
+        //Logger.info(`received new trade: ticker:${trade.ticker} price:${trade.price} qty:${trade.qty} consideration:${trade.cons}`);
+
+        const priceUpdate = handlePriceUpdate(trade);
+        const alerts = getAlertsForPrice(priceUpdate);
+        sio.emit('price:update', [priceUpdate, alerts]);
+
+    }
+
 }
 
-function handlePriceUpdate(data) {
+function handlePriceUpdate(trade) {
 
-    const ticker = data.market;
-    const trades = data.data;
-    const largestTrade = extractLargestTrade(trades, ticker);
-    const last10VolumesQ = getVolumesQueue(ticker);
-    updateVolumesInQueue(trades, last10VolumesQ);
-    const sumLast10Volumes = last10VolumesQ.reduce((r, v) => r + v, 0);
+    const ticker = trade.ticker;
+    const volumesObj = getVolumesObj(ticker);
+
+    let newSumVol;
+    if(volumesObj.queue.length < MAX_VOLUMES_QUEUE_SIZE){
+        newSumVol = volumesObj.queue.reduce((r, v) => r + v, 0) + trade.cons;
+        updateVolumesObj(volumesObj, trade.cons, newSumVol);
+
+    } else {
+        newSumVol = volumesObj.sum - volumesObj.queue.peek() + trade.cons;
+        updateVolumesObj(volumesObj, trade.cons, newSumVol);
+    }
+
+    const avgVolumes = newSumVol / volumesObj.queue.length;
+
 
     const bookCost = bookCostmap.get(ticker);
 
     priceUpdate = {
         ticker: ticker,
-        priceObj: largestTrade,
-        tradeVolume: sumLast10Volumes,
+        priceObj: trade,
+        tradeVolume: avgVolumes,
         bookCost: bookCost == null ? 0 : bookCost
     }
 
     return priceUpdate;
 }
 
-function extractLargestTrade(trades) {
-    return trades.sort((a, b) =>
-            a.size - b.size
-    ).slice(-1)[0]
-}
-
-function getVolumesQueue(ticker) {
-
-    var volumeQ = tickersToLast10VolQueues.get(ticker);
-    if(volumeQ === undefined) {
-        const Deque = require("collections/deque");
+function getVolumesObj(ticker) {
+    var volumesObj = tickersToVolObjs.get(ticker);
+    if(volumesObj === undefined) {
         volumeQ = new Deque();
-        tickersToLast10VolQueues.set(ticker, volumeQ);
+        volumesObj = {queue: volumeQ, sum: null};
+        tickersToVolObjs.set(ticker, volumesObj);
     }
-    return volumeQ;
+    return volumesObj;
 }
 
-function updateVolumesInQueue(trades, volumeQueue) {
-    trades.forEach(t => {
-        volumeQueue.push(t.size * t.price);
-        if(volumeQueue.length > VOLUMES_QUEUE_SIZE) {
-            volumeQueue.shift();
-        }
-    });
+function updateVolumesObj(volumesObj, latestVolume, newVolSum) {
+    volumesObj.queue.push(latestVolume);
+    volumesObj.sum = newVolSum;
+    if(volumesObj.queue.length > MAX_VOLUMES_QUEUE_SIZE) {
+        volumesObj.queue.shift();
+    }
 }
 
 

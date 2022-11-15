@@ -34,7 +34,7 @@
     <tr>
       <td>TICKER</td>
       <td>Price</td>
-      <td>Volume10</td>
+      <td>AvgVolume50</td> <!-- the average volume of the last 50 trades (configurable - see Apps.js::handlePriceUpdate) -->
       <td>Coins</td>
       <td>Position</td>
       <td>PnL</td>
@@ -346,11 +346,11 @@
     }
 
     static alertpricechangeUp() {
-      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav')
+      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav', false)
     }
 
     static alertpricechangeDown() {
-      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav');
+      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav', false);
     }
     static orderfill() {
       return this.createSound('./resources/soundeffects/fills/420505__jfrecords__uprising2.wav', true);
@@ -364,13 +364,13 @@
         sound: new Howl({
           src: [soundFile]
         }),
-        interruptPlay: allowInterruptPlay !== null
+        allowInterruptPlay: allowInterruptPlay
       };
 
     }
 
     static playSound(sound) {
-      if(sound.interruptPlay || !sound.sound.playing()) {
+      if(!sound.sound.playing() || (sound.sound.playing() && sound.allowInterruptPlay)) {
         sound.sound.play();
       }
     }

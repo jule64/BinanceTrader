@@ -1,16 +1,3 @@
-class TestUtils {
-
-    static getRestClient() {
-
-        const apikeys = require('./apikeys/apikeys.json');
-
-        const {RestClient} = require("ftx-api");
-        return new RestClient(apikeys.key, apikeys.secret);
-
-    }
-
-}
-
 
 class OrderManager {
 
@@ -100,7 +87,7 @@ class Logger {
 
     static wrapMessageWithTimeStampAndAppName(msg) {
         const timeStr = new Date().toLocaleTimeString();
-        return `${timeStr}: FTXTrader: ${msg}`;
+        return `${timeStr}: BinanceTrader: ${msg}`;
     }
 
 }
