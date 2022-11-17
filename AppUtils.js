@@ -1,16 +1,4 @@
-class TestUtils {
-
-    static getRestClient() {
-
-        const apikeys = require('./apikeys/apikeys.json');
-
-        const {RestClient} = require("ftx-api");
-        return new RestClient(apikeys.key, apikeys.secret);
-
-    }
-
-}
-
+const {CancelOrderParams} = require("binance/lib/types/shared");
 
 class OrderManager {
 
@@ -19,7 +7,7 @@ class OrderManager {
     }
 
 
-    async placeLimitOrderFromOrderBook(ticker, direction, size){
+    async placeLimitOrderFromOrderBook(order){
         let limitPrice;
 
         const ob = (await this.rc.getOrderbook({marketName:ticker, depth:3})).result;
@@ -53,23 +41,75 @@ class OrderManager {
     }
 
     getOpenOrders(ticker) {
-        return this.rc.getOpenOrders(ticker);
+
+        const openOrderObj = {symbol: ticker};
+
+        return this.rc.getOpenOrders(openOrderObj);
     }
 
-    cancelOpenOrder(orderId) {
-            this.rc.cancelOrder(orderId)
-                .then(resp => Logger.log("order canceled"))
-                .catch(err => Logger.log("cancellation rejected (order filled?)"));
+    placeOrder(marketOrder) {
+
+        return this.rc.submitNewOrder(marketOrder);
+    }
+}
+class OrdersUtils {
+
+    static convertToBinanceMarketOrder(o) {
+        const ticker = CoinUtils.convertToBinanceTicker(o.market);
+
+        return {
+            symbol: ticker,
+            side: o.side.toUpperCase(),
+            type: "MARKET",
+            quantity: o.size,
+        };
+
+
     }
 
-    placeMarketOrder(marketOrder) {
-        return this.rc.placeOrder(marketOrder);
+    static convertToBinanceLimitOrder(o) {
+        const ticker = CoinUtils.convertToBinanceTicker(o.market);
+
+        return {
+            symbol: ticker,
+            side: o.side.toUpperCase(),
+            type: "LIMIT",
+            quantity: o.size,
+            price: null,
+            timeInForce: 'GTC'
+        };
+
+
     }
+
+
 }
 
 class CoinUtils {
     static parseCoinFromTicker(ticker) {
         return ticker.split('/')[0];
+    }
+
+    static convertToBinanceTicker(ticker) {
+        return ticker.replace("/","");
+    }
+
+    static convertFromBinanceTicker(binanceTicker) {
+        return binanceTicker.split("BUSD")[0]+"/BUSD";
+    }
+
+    static async getNonNullBalances(rc) {
+        try {
+            const balances = await rc.getBalances();
+            return balances.filter(v => v.free > 0);
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    static getBalanceFor(coin, accountBalances) {
+        let res = accountBalances.filter(v => v.coin === coin);
+        return res.length > 0 ? res[0] : null;
     }
 }
 
@@ -100,10 +140,10 @@ class Logger {
 
     static wrapMessageWithTimeStampAndAppName(msg) {
         const timeStr = new Date().toLocaleTimeString();
-        return `${timeStr}: FTXTrader: ${msg}`;
+        return `${timeStr}: BinanceTrader: ${msg}`;
     }
 
 }
 
 
-module.exports = {OrderManager, TestUtils, Logger, CoinUtils}
+module.exports = {OrderManager, Logger, CoinUtils, OrdersUtils}

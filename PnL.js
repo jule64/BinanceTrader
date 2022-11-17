@@ -10,7 +10,7 @@ class PnL {
 
         tickersList.map(async (ticker) => {
 
-            const coin = CoinUtils.parseCoinFromTicker(ticker);
+            const coin = CoinUtils.parseCoinFromBUSDTicker(ticker);
 
             if(coin === "USD"){
                 return 0;
@@ -28,7 +28,10 @@ class PnL {
 
     }
 
+
     static buildCoinBookCost(ticker, bookCostmap, balances, orderHistory) {
+
+        const coin = CoinUtils.parseCoinFromTicker(ticker);
 
         if(coin === "USD"){
             return 0;
@@ -36,38 +39,37 @@ class PnL {
 
         bookCostmap.delete(coin);
 
-        var res = this.calculateCoinCost(coin, balances.result, orderHistory.result);
+        var res = this.calculateCoinCost(coin, balances, orderHistory);
         bookCostmap.set(ticker, res);
     }
 
 
-    static calculateCoinCost(coin, balances, orderHistory) {
-
-        const coinBalance = balances.filter(v => v.coin === coin)[0];
+    static calculateCoinCost(coin, coinBalance, tradeHistory) {
 
         if(coinBalance === undefined){
             return 0;
         }
-        if(Math.abs(coinBalance.usdValue) < 10){
+
+        if(Math.abs(coinBalance.free) < 0.00001){
             return 0;
         }
 
-        var balance = coinBalance.total;
+        console.log('calc coinssss');
+        var balance = coinBalance.free;
         var reconstitutedBalanceHistory = [];
-        for (const t of orderHistory) {
 
-            const dir = t.side === "buy" ? 1 : -1;
+        // the tradeHistory is ordered in ascending order of time. So the oldest trades are first and most recent trades are last.
+        // therefore we iterate the array in reverse order as we want to start from the most recent trades
+        for (let i = tradeHistory.length - 1; i > -1; i--) {
 
-            const tsize = t.filledSize;
+            console.log('calc for', i);
+            let t = tradeHistory[i];
 
+            const dir = t.isBuyer ? 1 : -1;
 
+            const tsize = t.qty;
 
-            if(tsize === 0){
-                // we move to next order since this order did not fill
-                continue;
-            }
-
-            const avgFillPrice = t.avgFillPrice;
+            const avgFillPrice = t.price;
 
             if (tsize <= Math.abs(balance) + 0.000001) {
                 reconstitutedBalanceHistory.push({tradeSize: tsize, cost: dir * tsize * avgFillPrice});
@@ -93,24 +95,6 @@ class PnL {
 
 
     }
-
-
-
-
-}
-
-async function coinBookCostTest(coin) {
-
-    const apikeys = require('./apikeys/apikeys.json');
-
-    const {RestClient} = require("ftx-api");
-    const ftxRestCli = new RestClient(apikeys.key, apikeys.secret);
-
-    const balances = await ftxRestCli.getBalances();
-    const orderHistory = await ftxRestCli.getOrderHistory({market: coin + "/USD"});
-
-
-    return calculateCoinCost(coin, balances.result, orderHistory.result);
 
 }
 
