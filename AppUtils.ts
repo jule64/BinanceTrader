@@ -1,61 +1,33 @@
-const {CancelOrderParams} = require("binance/lib/types/shared");
+import {AllCoinsInformationResponse, MainClient, OrderType} from "binance";
+import {NewSpotOrderParams} from "binance/lib/types/spot";
 
 class OrderManager {
+    private rc: MainClient;
 
-    constructor(restClient) {
+    constructor(restClient: MainClient) {
         this.rc = restClient;
     }
 
-
-    async placeLimitOrderFromOrderBook(order){
-        let limitPrice;
-
-        const ob = (await this.rc.getOrderbook({marketName:ticker, depth:3})).result;
-        if(direction === 'buy') {
-            limitPrice = ob.bids[2][0];
-        } else if(direction === 'sell') {
-            limitPrice = ob.asks[2][0];
-        } else {
-            throw new Error("Order must be a buy or sell. got a " + direction);
-        }
-
-        this.placeLimitOrder(ticker, direction, size, limitPrice);
-
-    }
-
-    placeLimitOrder(ticker, direction, size, limitPrice){
-
-        const limitOrder = {
-            market: ticker,
-            side: direction,
-            price: limitPrice,
-            type: "limit",
-            size: size,
-            postOnly: true
-        }
-
-        this.rc.placeOrder(limitOrder)
-            .then(resp => Logger.log("order placed", resp))
-            .catch(err => Logger.log("order rejected", err));
-
-    }
-
-    getOpenOrders(ticker) {
+    getOpenOrders(ticker: string) {
 
         const openOrderObj = {symbol: ticker};
 
         return this.rc.getOpenOrders(openOrderObj);
     }
 
-    placeOrder(marketOrder) {
+    placeOrder(marketOrder: NewSpotOrderParams) {
 
         return this.rc.submitNewOrder(marketOrder);
     }
 }
 class OrdersUtils {
 
-    static convertToBinanceMarketOrder(o) {
+    static convertToBinanceMarketOrder(o: any) {
         const ticker = CoinUtils.convertToBinanceTicker(o.market);
+
+
+
+
 
         return {
             symbol: ticker,
@@ -67,7 +39,7 @@ class OrdersUtils {
 
     }
 
-    static convertToBinanceLimitOrder(o) {
+    static convertToBinanceLimitOrder(o: any) {
         const ticker = CoinUtils.convertToBinanceTicker(o.market);
 
         return {
@@ -86,30 +58,20 @@ class OrdersUtils {
 }
 
 class CoinUtils {
-    static parseCoinFromTicker(ticker) {
+    static parseCoinFromTicker(ticker: string) {
         return ticker.split('/')[0];
     }
 
-    static convertToBinanceTicker(ticker) {
+    static convertToBinanceTicker(ticker: string) {
         return ticker.replace("/","");
     }
 
-    static convertFromBinanceTicker(binanceTicker) {
+    static convertFromBinanceTicker(binanceTicker: string) {
         return binanceTicker.split("BUSD")[0]+"/BUSD";
     }
 
-    static async getNonNullBalances(rc) {
-        try {
-            const balances = await rc.getBalances();
-            return balances.filter(v => v.free > 0);
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    static getBalanceFor(coin, accountBalances) {
-        let res = accountBalances.filter(v => v.coin === coin);
-        return res.length > 0 ? res[0] : null;
+    static getNonZeroBalances(rc: MainClient): Promise<AllCoinsInformationResponse[]> {
+        return rc.getBalances().then(v => v.filter(v => v.free > 0));
     }
 }
 
@@ -117,19 +79,21 @@ class CoinUtils {
 
 class Logger {
 
-    static info(msg, arg) {
+    static loggerName = "BinanceTrader"
+
+    static info(msg: string, arg: any) {
         this._log(console.info, msg, arg);
     }
 
-    static warn(msg, arg) {
+    static warn(msg: string, arg: any) {
         this._log(console.warn, msg, arg);
     }
 
-    static log(msg, arg) {
+    static log(msg: string, arg: any) {
         this._log(console.log, msg, arg);
     }
 
-    static _log(fun, msg, arg) {
+    static _log(fun: any, msg: string, arg: any) {
         if(arg === undefined){
             fun(this.wrapMessageWithTimeStampAndAppName(msg));
         } else {
@@ -138,9 +102,9 @@ class Logger {
     }
 
 
-    static wrapMessageWithTimeStampAndAppName(msg) {
+    static wrapMessageWithTimeStampAndAppName(msg: string) {
         const timeStr = new Date().toLocaleTimeString();
-        return `${timeStr}: BinanceTrader: ${msg}`;
+        return `${timeStr}: ${this.loggerName}: ${msg}`;
     }
 
 }

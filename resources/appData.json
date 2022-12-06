@@ -1,5 +1,5 @@
 {
-  "tickerWatchlist": ["ETH/USD", "BTC/USD", "DOT/USD", "FTT/USD", "LDO/USD", "CRV/USD"],
+  "tickerWatchlist": ["ETH/BUSD", "BTC/BUSD", "BNB/BUSD", "DOT/BUSD", "ADA/BUSD", "CRV/BUSD"],
   "totalFunding": 0,
   "accountCcy": "BUSD"
 }
