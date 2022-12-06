@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "tsc": "tsc",
     "debugapp": "nodemon server.js"
   },
   "keywords": [],
@@ -19,9 +20,11 @@
     "howler": "^2.2.3",
     "optional-js": "^2.3.0",
     "play-sound": "^1.1.5",
-    "socket.io": "^4.1.2"
+    "socket.io": "^4.1.2",
+    "typescript": "^4.9.3"
   },
   "devDependencies": {
-    "nodemon": "^2.0.16"
+    "nodemon": "^2.0.16",
+    "ts-node": "^10.9.1"
   }
 }
