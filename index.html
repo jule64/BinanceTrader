@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>FTX Trader</title>
+  <title>Binance Trader</title>
 
   <link href="./node_modules/bootstrap/dist/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="./resources/mycss.css" rel="stylesheet" type="text/css">
@@ -34,7 +34,8 @@
     <tr>
       <td>TICKER</td>
       <td>Price</td>
-      <td>Volume10</td>
+      <td>Volume30</td> <!-- the sum of the last 30 trades (configurable in Apps.js::handlePriceUpdate) -->
+      <td>TC_30s</td> <!-- the trade count in the last 30 seconds -->
       <td>Coins</td>
       <td>Position</td>
       <td>PnL</td>
@@ -115,6 +116,12 @@
       }
     });
 
+    socket.on('tradeStats:update', function (tradeCounts) { // Map<Ticker, TradeCounts>
+      tradeCounts.forEach(([ticker, count]) => {
+        document.getElementById('f_tc:' + ticker).textContent = count;
+      });
+    });
+
 
     socket.on('balances:update', function (balance) {
       console.log("received balances update");
@@ -125,11 +132,11 @@
 
         if (balance !== null) {
 
-          if (ticker === 'USD') {
-            document.getElementById('acc_usdbalance').textContent = roundAndFormat(balance.usdValue);
+          if (ticker === 'BUSD') {
+            document.getElementById('acc_usdbalance').textContent = roundAndFormat(balance.balance);
           } else {
             document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(balance.usdValue);
-            document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance.total);
+            document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance.balance);
           }
         }
 
@@ -195,6 +202,7 @@
     var tickercell = row.insertCell();
     var pricecell = row.insertCell();
     var qtycell = row.insertCell();
+    var tradeCountsCell = row.insertCell();
     var coinscell = row.insertCell();
     var balancescell = row.insertCell();
     var coinpnlcell = row.insertCell();
@@ -212,6 +220,7 @@
     tickercell.className = 'ticker-cell';
     pricecell.id = 'fprice:' + tkr;
     qtycell.id = 'fqty:' + tkr;
+    tradeCountsCell.id = 'f_tc:' + tkr;
     balancescell.id = 'fbalanceUSD:' + tkr;
     coinpnlcell.id = 'fcoinpnl:' + tkr;
     coinscell.id = 'fcoinbalance:' + tkr;
@@ -281,6 +290,7 @@
     order = newMarketOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-market-order', order);
+    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
   }
 
   function newMarketOrder(ticker, side, size) {
@@ -346,11 +356,11 @@
     }
 
     static alertpricechangeUp() {
-      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav')
+      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav', false)
     }
 
     static alertpricechangeDown() {
-      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav');
+      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav', false);
     }
     static orderfill() {
       return this.createSound('./resources/soundeffects/fills/420505__jfrecords__uprising2.wav', true);
@@ -364,13 +374,13 @@
         sound: new Howl({
           src: [soundFile]
         }),
-        interruptPlay: allowInterruptPlay !== null
+        allowInterruptPlay: allowInterruptPlay
       };
 
     }
 
     static playSound(sound) {
-      if(sound.interruptPlay || !sound.sound.playing()) {
+      if(!sound.sound.playing() || (sound.sound.playing() && sound.allowInterruptPlay)) {
         sound.sound.play();
       }
     }
