@@ -1,5 +1,5 @@
 import {
-    WsFormattedMessage,
+    WsFormattedMessage, WsMessage24hrMiniTickerFormatted,
     WsMessageAggTradeFormatted,
     WsMessageSpotUserDataExecutionReportEventFormatted,
     WsUserDataEvents
@@ -17,3 +17,6 @@ export function isWsAggTradeFormatted(data: WsFormattedMessage): data is WsMessa
     return !Array.isArray(data) && data.eventType === 'aggTrade';
 }
 
+export function isWs24hrMiniTickerFormattedMessage(data: WsFormattedMessage): data is WsMessage24hrMiniTickerFormatted {
+    return !Array.isArray(data) && data.eventType === '24hrMiniTicker';
+}

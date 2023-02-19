@@ -60,6 +60,17 @@
     animation: blinkingRedBackground 2s infinite;
 }
 
+.price-change-up {
+    color: #007805;
+    font-weight: 600;
+}
+
+.price-change-down {
+    color: #c10707;
+    font-weight: 600;
+}
+
+
 
 .table > :not(caption) > * > * {
     background-color: #2c3034;

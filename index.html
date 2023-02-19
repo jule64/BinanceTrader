@@ -33,9 +33,10 @@
   <thead>
     <tr>
       <td>TICKER</td>
-      <td>Price</td>
+      <td><div style="width: 60px" ></div>Price</td> <!--  we add a fixed 60px width here to prevent the tiny column auto resizes that happen whenever prices change in length (e.g BTC when price goes from 18500.65 to 18500.6) as this is visually annoying.  -->
       <td>Volume30</td> <!-- the sum of the last 30 trades (configurable in Apps.js::handlePriceUpdate) -->
       <td>TC_30s</td> <!-- the trade count in the last 30 seconds -->
+      <td>24h%</td>
       <td>Coins</td>
       <td>Position</td>
       <td>PnL</td>
@@ -100,7 +101,7 @@
       document.getElementById('fcoinpnl:' + ticker).textContent = calculateCoinPnl(document.getElementById('fcoinbalance:' + ticker).textContent,  pUpdate.priceObj.price, pUpdate.bookCost);
 
       const alert = arr[1];
-      if (alert.ticker !== "") {
+      if (Object.keys(alert).length !== 0) {
         const tickerCell = document.getElementById('fticker:' + alert.ticker);
         if (alert.direction === 'up') {
           console.log("up alert triggered for ticker ", alert.ticker);
@@ -120,6 +121,27 @@
     socket.on('tradeStats:update', function (tradeCounts) { // Map<Ticker, TradeCounts>
       tradeCounts.forEach(([ticker, count]) => {
         document.getElementById('f_tc:' + ticker).textContent = count;
+      });
+    });
+
+    socket.on('24hrStats:update', function (tickerStats) {
+      tickerStats.forEach(([ticker, stats]) => {
+        let price = document.getElementById('fprice:' + ticker).textContent;
+
+        let change24hr;
+        if(price !== '' && stats.open !== '') {
+          change24hr = (100 * (price/stats.open - 1)).toFixed(2);
+        } else {
+          change24hr = '';
+        }
+        const change24hCell = document.getElementById('f_open:' + ticker);
+        change24hCell.textContent = change24hr
+        if(change24hr >= 0) {
+          change24hCell.className = 'price-change-up';
+        } else {
+          change24hCell.className = 'price-change-down';
+        }
+
       });
     });
 
@@ -208,6 +230,7 @@
     var pricecell = row.insertCell();
     var qtycell = row.insertCell();
     var tradeCountsCell = row.insertCell();
+    var priceOpenCell = row.insertCell();
     var coinscell = row.insertCell();
     var balancescell = row.insertCell();
     var coinpnlcell = row.insertCell();
@@ -226,6 +249,7 @@
     pricecell.id = 'fprice:' + tkr;
     qtycell.id = 'fqty:' + tkr;
     tradeCountsCell.id = 'f_tc:' + tkr;
+    priceOpenCell.id = 'f_open:' + tkr;
     balancescell.id = 'fbalanceUSD:' + tkr;
     coinpnlcell.id = 'fcoinpnl:' + tkr;
     coinscell.id = 'fcoinbalance:' + tkr;

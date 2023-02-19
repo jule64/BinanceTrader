@@ -7,7 +7,7 @@ A fast and minimalist front end to trade cryptos on [Binance](https://www.binanc
 
 ## Background
 
-I originally built this app to trade on the FTX exchange, however since the exchange is ☠️ I decided to rewrite the app to trade on Binance!
+I originally built this app to trade on the FTX exchange, however since the exchange went ☠️ I decided to rewrite the app to trade on Binance!
 
 This app therefore has the same look and feel and most of the functionalities of the original app. I have also added a few new ones and will continue
 to add features over time.
@@ -55,9 +55,9 @@ It uses `socket.io` for the client/backend communication.
 
 
 ## Disclaimer
-This app is my personal project and is not affiliated with the Binance Exchange.
+This app is my personal project and is not affiliated with Binance!
 
-I use this app daily to trade on the Binance exchange **BUT I make no guaranty as to it's safety for YOUR trading!**  
+I use this app daily to trade on the exchange **BUT I make no guaranty as to it's safety for YOUR trading!**  
 
 Note also that this code is constantly changing and can be buggy! So if you are considering using this app for your own trading
 make sure you first understand the code and the risks before attempting any trading with it.

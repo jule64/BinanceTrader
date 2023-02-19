@@ -15,19 +15,15 @@ class OrderManager {
         return this.rc.getOpenOrders(openOrderObj);
     }
 
-    placeOrder(marketOrder: NewSpotOrderParams) {
+    placeOrder(order: NewSpotOrderParams) {
 
-        return this.rc.submitNewOrder(marketOrder);
+        return this.rc.submitNewOrder(order);
     }
 }
-class OrdersUtils {
+class OrderUtils {
 
-    static convertToBinanceMarketOrder(o: any) {
+    static convertToBinanceMarketOrder(o: any): NewSpotOrderParams {
         const ticker = CoinUtils.convertToBinanceTicker(o.market);
-
-
-
-
 
         return {
             symbol: ticker,
@@ -39,7 +35,7 @@ class OrdersUtils {
 
     }
 
-    static convertToBinanceLimitOrder(o: any) {
+    static convertToBinanceLimitOrder(o: any): NewSpotOrderParams {
         const ticker = CoinUtils.convertToBinanceTicker(o.market);
 
         return {
@@ -47,7 +43,6 @@ class OrdersUtils {
             side: o.side.toUpperCase(),
             type: "LIMIT",
             quantity: o.size,
-            price: null,
             timeInForce: 'GTC'
         };
 
@@ -110,4 +105,4 @@ class Logger {
 }
 
 
-module.exports = {OrderManager, Logger, CoinUtils, OrdersUtils}
+module.exports = {OrderManager, Logger, CoinUtils, OrderUtils}

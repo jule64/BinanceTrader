@@ -1,10 +1,10 @@
 import {AllCoinsInformationResponse, MainClient, SpotOrder, WebsocketClient} from "binance";
 import {
-    WsFormattedMessage,
+    WsFormattedMessage, WsMessage24hrMiniTickerFormatted,
     WsMessageAggTradeFormatted,
 } from "binance/lib/types/websockets";
 
-import {isWsSpotUserDataExecutionReportFormatted, isWsAggTradeFormatted} from "./typeGuards";
+import {isWsSpotUserDataExecutionReportFormatted, isWsAggTradeFormatted, isWs24hrMiniTickerFormattedMessage} from "./typeGuards";
 import {Socket} from "socket.io";
 
 const express = require("express");
@@ -14,7 +14,7 @@ const http = require('http').createServer(app);
 const socketio = require('socket.io')(http);
 app.use(express.static(__dirname));
 
-const {OrderManager, Logger, CoinUtils, OrdersUtils} = require("./AppUtils");
+const {OrderManager, Logger, CoinUtils, OrderUtils} = require("./AppUtils");
 
 
 const apikey = process.env.APIKEY || '';
@@ -53,6 +53,8 @@ const tickersToVolObjs = new Map();
 const MAX_VOLUMES_QUEUE_SIZE = 30
 
 const tradeCountsPerMinute: Map<string, number> = new Map();
+const mini24hrTickerStats: Map<string, object> = new Map();
+
 
 const balanceObj = {
     accountUSDBalance: null,
@@ -70,20 +72,21 @@ http.listen(appPort, () => {
 
 
 
-function getAlertsForPrice(priceUpdate: any) {
-    const uplevel = upalerts.get(priceUpdate.ticker);
-    const downlevel = downalerts.get(priceUpdate.ticker);
+function getAlertsForPrice(ticker: string, price: number) {
+    const uplevel = upalerts.get(ticker);
+    const downlevel = downalerts.get(ticker);
 
-    let alertObj = {ticker: '', direction: ''};
-    if (uplevel != null && priceUpdate.priceObj.price > uplevel) {
-        alertObj.ticker = priceUpdate.ticker;
-        alertObj.direction = 'up';
-    } else if (downlevel != null && priceUpdate.priceObj.price < downlevel) {
-        alertObj.ticker = priceUpdate.ticker;
-        alertObj.direction = 'down';
+    let alertObj;
+
+
+    if (uplevel != null && price > uplevel) {
+        alertObj = {ticker: ticker, direction: 'up'};
+    } else if (downlevel != null && price < downlevel) {
+        alertObj = {ticker: ticker, direction: 'down'};
     } else if (uplevel != null || downlevel != null) {
-        alertObj.ticker = priceUpdate.ticker;
-        alertObj.direction = ''; // means not triggered or untriggered (from up or down)
+        alertObj = {ticker: ticker, direction: ''}; // means not triggered (or untriggered from up or down)
+    } else {
+        alertObj = {};
     }
     return alertObj;
 }
@@ -170,13 +173,16 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
         }, 60000);
 
 
-    // initialise trade counts map
-    appData.tickerWatchlist.forEach((t: string) => tradeCountsPerMinute.set(t, 0));
-
     // publish trade counts every 30 seconds then reset counts for the next 30s cycle
     setInterval(() => {
         sio.emit('tradeStats:update', tradeCountsPerMinute);
         appData.tickerWatchlist.forEach((t: string) => tradeCountsPerMinute.set(t, 0));
+    }, 30000);
+
+
+    // publish 24hour ticker stats every 30 seconds
+    setInterval(() => {
+        sio.emit('24hrStats:update', mini24hrTickerStats);
     }, 30000);
 
 
@@ -193,7 +199,11 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             if(!subscribedTickers.includes(ticker)){
                 try {
                     Logger.log("subscribing to real time price updates for ", ticker);
+                    tradeCountsPerMinute.set(ticker, 0);
                     ws.subscribeSpotAggregateTrades(CoinUtils.convertToBinanceTicker(ticker));
+
+                    mini24hrTickerStats.set(ticker, {open: ''});
+                    ws.subscribeSymbolMini24hrTicker(CoinUtils.convertToBinanceTicker(ticker), "spot");
                     subscribedTickers.push(ticker);
                     // TODO fix PnL call
                     //PnL.buildCoinCostMap(tickersNotSubscribedYet, bookCostmap, restClient);
@@ -206,7 +216,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
 
         socket.on('orders:new-market-order', async (order: any) => {
             Logger.info('received market order', order);
-            const marketOrder = OrdersUtils.convertToBinanceMarketOrder(order);
+            const marketOrder = OrderUtils.convertToBinanceMarketOrder(order);
             try {
                 let resp = await om.placeOrder(marketOrder);
                 Logger.info('market order successfully placed', resp)
@@ -218,7 +228,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
         socket.on('orders:new-limitbook-order', async (order: any) => {
 
             Logger.info("received limit order", order);
-            const limOrder = OrdersUtils.convertToBinanceLimitOrder(order);
+            const limOrder = OrderUtils.convertToBinanceLimitOrder(order);
 
             let res;
             try {
@@ -235,7 +245,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
                     throw new Error("Order must be a BUY or SELL. Received a " + orderSide);
                 }
 
-                limOrder.price = limitPrice;
+                limOrder.price = limitPrice; // mandatory input
 
                 res = await om.placeOrder(limOrder);
 
@@ -289,11 +299,14 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
 
         if(isWsAggTradeFormatted(data)){
             processSpotAggregateTrades(data);
+        } else if(isWs24hrMiniTickerFormattedMessage(data)) {
+            processMini24hrTicker(data);
+
         } else if (isWsSpotUserDataExecutionReportFormatted(data)) {
             if (data.orderStatus === 'NEW') {
                 Logger.info(`received a order confirmation for ${data.symbol}`);
-            } else if (data.orderStatus === 'FILLED') {
-                Logger.info("received a fill for: " + data.symbol);
+            } else if (data.orderStatus === 'FILLED' || data.orderStatus === 'PARTIALLY_FILLED') {
+                Logger.info("received a fill for: " + data.symbol, data);
                 const fill = {
                     market: CoinUtils.convertFromBinanceTicker(data.symbol),
                     size: data.quantity,
@@ -302,11 +315,21 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             } else if (data.orderStatus === 'CANCELED') {
                 Logger.info(`received a order cancellation confirmation of ${data.quantity} ${data.symbol}`);
             } else {
-                Logger.info(`recevied a user execution event for ${data.symbol}`, data);
+                Logger.info(`received a user execution event for ${data.symbol}`, data);
             }
         }
 
     });
+
+    function processMini24hrTicker(data: WsMessage24hrMiniTickerFormatted) {
+
+        const ticker = CoinUtils.convertFromBinanceTicker(data.symbol);
+
+        // update trade counts map
+        let stats = mini24hrTickerStats.get(ticker);
+        // @ts-ignore
+        stats.open = data.open;
+    }
 
 
     function processSpotAggregateTrades(trade: WsMessageAggTradeFormatted) {
@@ -320,17 +343,17 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             "ticker": ticker,
             "price": price,
             "qty": qty,
-            "cons": Math.round(price * qty)
+            "notional": Math.round(price * qty)
         }
 
-        //Logger.info(`received new trade: ticker:${trade.ticker} price:${trade.price} qty:${trade.qty} consideration:${trade.cons}`);
+        //Logger.info(`received new trade: ticker:${trade.ticker} price:${trade.price} qty:${trade.qty} consideration:${trade.notional}`);
 
         const priceUpdate = handlePriceUpdate(priceObj);
-        const alerts = getAlertsForPrice(priceUpdate);
+        const alerts = getAlertsForPrice(priceObj.ticker, priceObj.price);
 
         // update trade counts map
-        let count = tradeCountsPerMinute.get(ticker);
-        tradeCountsPerMinute.set(ticker, (count === undefined ? 0 : count) + 1);
+        // @ts-ignore
+        tradeCountsPerMinute.set(ticker, tradeCountsPerMinute.get(ticker) + 1);
 
         sio.emit('prices:update', [priceUpdate, alerts]);
 
@@ -347,12 +370,12 @@ function handlePriceUpdate(priceObj: any) {
 
     let newSumVol;
     if(volumesObj.queue.length < MAX_VOLUMES_QUEUE_SIZE){
-        newSumVol = volumesObj.queue.reduce((r: any, v: any) => r + v, 0) + priceObj.cons;
-        updateVolumesObj(volumesObj, priceObj.cons, newSumVol);
+        newSumVol = volumesObj.queue.reduce((r: any, v: any) => r + v, 0) + priceObj.notional;
+        updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
 
     } else {
-        newSumVol = volumesObj.sum - volumesObj.queue.peek() + priceObj.cons;
-        updateVolumesObj(volumesObj, priceObj.cons, newSumVol);
+        newSumVol = volumesObj.sum - volumesObj.queue.peek() + priceObj.notional;
+        updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
     }
 
     const sumVolumes = newSumVol;
