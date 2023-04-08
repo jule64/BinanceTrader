@@ -17,8 +17,15 @@ app.use(express.static(__dirname));
 const {OrderManager, Logger, CoinUtils, OrderUtils} = require("./AppUtils");
 
 
-const apikey = process.env.APIKEY || '';
-const apisecret = process.env.APISECRET || '';
+const apikey = process.env.APIKEY;
+if(!apikey) {
+    throw new Error("no api key provided")
+}
+
+const apisecret = process.env.APISECRET;
+if(!apisecret) {
+    throw new Error("no api secret provided")
+}
 const appPort = process.env.APP_PORT || 5001
 
 Logger.info(`Starting app with:`);

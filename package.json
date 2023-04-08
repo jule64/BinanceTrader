@@ -1,11 +1,12 @@
 {
-  "name": "BinanceTrader",
+  "name": "binance-trader",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "tsc": "tsc",
-    "debugapp": "nodemon server.js"
+    "debugapp": "nodemon server.js",
+    "dockerStart": "APIKEY=$MY_APIKEY APISECRET=$MY_API_SECRET APP_PORT=$APP_PORT node App.js"
   },
   "keywords": [],
   "author": "",
