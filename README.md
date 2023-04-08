@@ -1,18 +1,19 @@
 # Binance Trader
 
-A fast and minimalist front end to trade cryptos on [Binance](https://www.binance.com/en).
+A fast and minimalist web frontend to trade cryptos on [Binance](https://www.binance.com/en)
 
 ![v1.0.png](resources/app_screenshots/v1.0.png)
 (_version 1.0_)
 
 ## Background
 
-I originally built this app to trade on the FTX exchange, however since the exchange went ☠️ I decided to rewrite the app to trade on Binance!
+I originally built this app to trade on the FTX exchange, however since the exchange went ☠️ in November 2022 I decided to update the app to trade on Binance.
 
-This app therefore has the same look and feel and most of the functionalities of the original app. I have also added a few new ones and will continue
-to add features over time.
+This app therefore has the same look and feel and most of the functionalities of the original app and I am adding new features and improvements on a regular basis.
 
-In addition since I built this App on top of the original FTX one I have kept all the commit history of the original codebase so that all the commits and changes can be reviewed since the origin.
+Installation steps and info about the project detailed in sections below. **Note you will need a Binance account to run this app.**
+
+Contributions: if you are interested in contributing have a look at the features and bugs listed [here](https://github.com/jule64/BinanceTrader/issues) or feel free to raise a new issue :)
 
 ## Installation
 
