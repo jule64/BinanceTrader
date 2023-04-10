@@ -83,7 +83,7 @@
     var tblbody = getTableBodyMainTbl();
 
     tblTickers.forEach((tkr) => {
-      addRowToTable(socket, tkr, tblbody);
+      generateTickerRow(socket, tkr, tblbody);
       subscribeToPriceUpdates(socket, tkr);
       requestCoinBalance(socket, tkr);
     })
@@ -225,12 +225,12 @@
   function addTickerToMainTable(tkr) {
     //const tkr = document.getElementById('addtickerinput').value;
     const socket = io();
-    addRowToTable(socket, tkr, getTableBodyMainTbl());
+    generateTickerRow(socket, tkr, getTableBodyMainTbl());
     subscribeToPriceUpdates(socket, tkr);
     requestCoinBalance(socket, tkr);
   }
 
-  function addRowToTable(socket, tkr, tblbody) {
+  function generateTickerRow(socket, tkr, tblbody) {
 
     row = tblbody.insertRow();
     var tickercell = row.insertCell();
