@@ -47,6 +47,7 @@ const wsClient = new WebsocketClient(
 );
 
 const appData = require("./resources/appData.json");
+const coinsToAccountBalances = new Map(); // Map<coin,{coin: coin, balance: balanceValue, usdValue: balanceUsdValue}>
 
 const Deque = require("collections/deque");
 
@@ -99,25 +100,21 @@ function getAlertsForPrice(ticker: string, price: number) {
 }
 
 async function buildAccountAndCoinBalances(rc: MainClient, accountBalances: AllCoinsInformationResponse[], coinsToUpdate: string[]) {
-
     let accountUSDBalance = 0;
-    const coinsToAccountBalances = new Map();
-
     for (const coinBalance of accountBalances) {
-
         let coin = coinBalance.coin;
-
          try {
             const usdPrice = await getCoinUsdValue(rc, coin);
             const balanceValue = Number(coinBalance.free);
             const balanceUsdValue = usdPrice * balanceValue;
             coinsToAccountBalances.set(coin, {coin: coin, balance: balanceValue, usdValue: balanceUsdValue});
-            accountUSDBalance = balanceUsdValue + accountUSDBalance;
+            accountUSDBalance = accountUSDBalance + balanceUsdValue;
         } catch (e) {
             Logger.warn("an error occurred while fetching the USD price of " + coin +
-                ". The balance will not be updated", e);
+                ". The balance will not be updated");
         }
     }
+    coinsToAccountBalances.set('ACCOUNT_ALL_BAL', {coin: 'ACCOUNT_ALL_BAL', balance: 1, usdValue: accountUSDBalance});
 
     return {
         accountUSDBalance: accountUSDBalance,
@@ -162,22 +159,18 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
     Logger.info('updating account and coin balances');
     CoinUtils.getNonZeroBalances(rc)
         .then((balances: AllCoinsInformationResponse[]) => {
-            buildAccountAndCoinBalances(rc, balances, coinsToUpdate).then(balancesJson => updateAppStateBalances(balancesJson));
-        }).catch((e: any) => {
-            let error = new Error("Unable to retrieve account balances for App initialisation"); // TODO implement own App error type
-            error.stack = e.stack;
-            throw  error;
-        });
+            buildAccountAndCoinBalances(rc, balances, coinsToUpdate)
+        })
+        .catch((err: any) => {Logger.warn("error occurred while building account balances")});
 
-
-    // refresh account balances every 60 seconds
     setInterval(() => {
         CoinUtils.getNonZeroBalances(rc)
-            .then((balances: AllCoinsInformationResponse[]) => { buildAccountAndCoinBalances(rc, balances, coinsToUpdate)
-                .then(balancesJson => updateAppStateBalances(balancesJson))
-                .then((balancesJson) => sio.emit('balances:update', balancesJson))});
+            .then((balances: AllCoinsInformationResponse[]) => {
+                buildAccountAndCoinBalances(rc, balances, coinsToUpdate)})
+                    .then(() => sio.emit('balances:singleTicker', coinsToAccountBalances.get('ACCOUNT_ALL_BAL')))
+            .catch((err: any) => {throw err})},
+                60000);
 
-        }, 60000);
 
 
     // publish trade counts every 30 seconds then reset counts for the next 30s cycle
@@ -199,7 +192,6 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
     sio.on('connection', (socket: Socket) => {
 
         Logger.info('received socket connection');
-        sio.emit('balances:update', balanceObj);
 
         socket.on('prices:subscribe', function (ticker: string) {
 
@@ -217,6 +209,18 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
                 } catch (e) {
                     Logger.warn("couldn't subscribe to ticker ", ticker);
                 }
+            }
+
+        });
+        socket.on('balances:requestSingle', function (ticker: string) {
+
+
+            const coin = CoinUtils.parseCoinFromTicker(ticker);
+
+            const balance = coinsToAccountBalances.get(coin);
+
+            if(balance) {
+                sio.emit('balances:singleTicker', balance);
             }
 
         });
@@ -315,7 +319,8 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             } else if (data.orderStatus === 'FILLED' || data.orderStatus === 'PARTIALLY_FILLED') {
                 Logger.info("received a fill for: " + data.symbol, data);
                 const fill = {
-                    market: CoinUtils.convertFromBinanceTicker(data.symbol),
+                    ticker: CoinUtils.convertFromBinanceTicker(data.symbol),
+                    side: data.side === 'BUY' ? 1 : -1,
                     size: data.quantity,
                 };
                 sio.emit('orders:fill', fill);

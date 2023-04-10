@@ -86,7 +86,12 @@
     tblTickers.forEach((tkr) => {
       addRowToTable(socket, tkr, tblbody);
       subscribeToPriceUpdates(socket, tkr);
+      requestCoinBalance(socket, tkr);
     })
+
+    requestCoinBalance(socket, appData.accountCcy);
+    requestCoinBalance(socket, 'ACCOUNT_ALL_BAL');
+
 
 
 
@@ -99,7 +104,10 @@
       document.getElementById('fprice:' + ticker).textContent = pUpdate.priceObj.price;
       document.getElementById('fqty:' + ticker).textContent = Math.round(pUpdate.tradeVolume).toLocaleString('en-US');
       document.getElementById('fcoinpnl:' + ticker).textContent = calculateCoinPnl(document.getElementById('fcoinbalance:' + ticker).textContent,  pUpdate.priceObj.price, pUpdate.bookCost);
-
+      const coinBalance = document.getElementById('fcoinbalance:' + ticker).textContent;
+      if(coinBalance){
+          document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(coinBalance * pUpdate.priceObj.price);
+      }
       const alert = arr[1];
       if (Object.keys(alert).length !== 0) {
         const tickerCell = document.getElementById('fticker:' + alert.ticker);
@@ -146,6 +154,29 @@
     });
 
 
+    socket.on('balances:singleTicker', function (tickerBalance) {
+      console.log("received balance update for " + tickerBalance.coin);
+      totalBalance = 0;
+      const coin = tickerBalance.coin;
+      const balance = tickerBalance.balance;
+      const usdBalance = tickerBalance.usdValue;
+
+      if (balance !== null) {
+        if (coin === 'BUSD') {
+          document.getElementById('acc_usdbalance').textContent = roundAndFormat(usdBalance);
+        } else if (coin === 'ACCOUNT_ALL_BAL') {
+          document.getElementById('acc_totalBalance').textContent = roundAndFormat(usdBalance);
+          document.getElementById('acc_pnl').textContent = roundAndFormat(usdBalance - totalFundingUSD);
+        } else {
+          const ticker = coin + '/' + 'BUSD';
+          document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(usdBalance);
+          document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance);
+        }
+      }
+    });
+
+
+
     socket.on('balances:update', function (balance) {
       console.log("received balances update");
       totalBalance = 0;
@@ -169,7 +200,14 @@
     });
 
     socket.on('orders:fill', function (fill) {
-      console.log("received fill for" + fill.market);
+
+      console.log("received fill for " + fill.ticker);
+
+      const tickerEl = document.getElementById('fcoinbalance:' + fill.ticker)
+      const existingBalance = tickerEl.textContent;
+      const newBalance = Number(existingBalance) +  Number(fill.size) * fill.side;
+      tickerEl.textContent = newBalance.toLocaleString('en-US');
+
       Sounds.playSound(Sounds.soundEffects.orderfill);
     });
   }
@@ -216,11 +254,16 @@
     socket.emit('prices:subscribe', ticker);
   }
 
+  function requestCoinBalance(socket, ticker) {
+    socket.emit('balances:requestSingle', ticker); // response is processed in 'balances:singleTicker'
+  }
+
   function addTickerToMainTable(tkr) {
     //const tkr = document.getElementById('addtickerinput').value;
     const socket = io();
     addRowToTable(socket, tkr, getTableBodyMainTbl());
     subscribeToPriceUpdates(socket, tkr);
+    requestCoinBalance(socket, tkr);
   }
 
   function addRowToTable(socket, tkr, tblbody) {
@@ -319,7 +362,6 @@
     order = newMarketOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-market-order', order);
-    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
   }
 
   function newMarketOrder(ticker, side, size) {
@@ -376,7 +418,6 @@
     }
 
     static marketorder() {
-      console.log("alerts market order created")
       return this.createSound('./resources/soundeffects/trade_execution/460133__eschwabe3__robot-affirmative.wav', true);
     }
 
