@@ -39,7 +39,6 @@
       <td>24h%</td>
       <td>Coins</td>
       <td>Position</td>
-      <td>PnL</td>
       <td>Size</td>
       <td>Sell</td>
       <td>Buy</td>
@@ -103,7 +102,6 @@
       // console.log(ticker, pUpdate.priceObj);
       document.getElementById('fprice:' + ticker).textContent = pUpdate.priceObj.price;
       document.getElementById('fqty:' + ticker).textContent = Math.round(pUpdate.tradeVolume).toLocaleString('en-US');
-      document.getElementById('fcoinpnl:' + ticker).textContent = calculateCoinPnl(document.getElementById('fcoinbalance:' + ticker).textContent,  pUpdate.priceObj.price, pUpdate.bookCost);
       const coinBalance = document.getElementById('fcoinbalance:' + ticker).textContent;
       if(coinBalance){
           document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(coinBalance * pUpdate.priceObj.price);
@@ -192,16 +190,6 @@
       return document.getElementById('maintbl').getElementsByTagName('tbody')[0];
    }
 
-   function calculateCoinPnl(positionValueStr, price, bookCost) {
-
-    positionValue = Number(positionValueStr === "" ? "0" : positionValueStr.replace(",",""));
-
-    if(positionValue === 0)
-      return "-";
-
-     return roundAndFormat(positionValue *  price - bookCost);
-   }
-
   function setAlert(socket, ticker, alertlevel, currPrice) {
     const direction = alertlevel > currPrice ? "up" : "down";
     const alertObj = { ticker: ticker, direction: direction, alertlevel: alertlevel };
@@ -252,7 +240,6 @@
     var priceOpenCell = row.insertCell();
     var coinscell = row.insertCell();
     var balancescell = row.insertCell();
-    var coinpnlcell = row.insertCell();
     var orderSizec = row.insertCell();
     var sellOrderc = row.insertCell();
     var buyOrderc = row.insertCell();
@@ -270,7 +257,6 @@
     tradeCountsCell.id = 'f_tc:' + tkr;
     priceOpenCell.id = 'f_open:' + tkr;
     balancescell.id = 'fbalanceUSD:' + tkr;
-    coinpnlcell.id = 'fcoinpnl:' + tkr;
     coinscell.id = 'fcoinbalance:' + tkr;
 
     var orderSizeIn = document.createElement('input');

@@ -185,8 +185,6 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
                     mini24hrTickerStats.set(ticker, {open: ''});
                     ws.subscribeSymbolMini24hrTicker(CoinUtils.convertToBinanceTicker(ticker), "spot");
                     subscribedTickers.push(ticker);
-                    // TODO fix PnL call
-                    //PnL.buildCoinCostMap(tickersNotSubscribedYet, bookCostmap, restClient);
                 } catch (e) {
                     Logger.warn("couldn't subscribe to ticker ", ticker);
                 }
