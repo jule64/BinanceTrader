@@ -175,30 +175,6 @@
       }
     });
 
-
-
-    socket.on('balances:update', function (balance) {
-      console.log("received balances update");
-      totalBalance = 0;
-      balance.balancesMap.forEach(arr => {
-        const ticker = arr[0];
-        const balance = arr[1];
-
-        if (balance !== null) {
-
-          if (ticker === 'BUSD') {
-            document.getElementById('acc_usdbalance').textContent = roundAndFormat(balance.balance);
-          } else {
-            document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(balance.usdValue);
-            document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance.balance);
-          }
-        }
-
-      })
-      document.getElementById('acc_totalBalance').textContent = roundAndFormat(balance.accountUSDBalance);
-      document.getElementById('acc_pnl').textContent = roundAndFormat(balance.accountUSDBalance - totalFundingUSD);
-    });
-
     socket.on('orders:fill', function (fill) {
 
       console.log("received fill for " + fill.ticker);

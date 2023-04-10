@@ -64,12 +64,6 @@ const tradeCountsPerMinute: Map<string, number> = new Map();
 const mini24hrTickerStats: Map<string, object> = new Map();
 
 
-const balanceObj = {
-    accountUSDBalance: null,
-    balancesMap: new Map()
-};
-
-
 initApp(socketio, wsClient, restClient);
 
 
@@ -115,12 +109,6 @@ async function buildAccountAndCoinBalances(rc: MainClient, accountBalances: AllC
         }
     }
     coinsToAccountBalances.set('ACCOUNT_ALL_BAL', {coin: 'ACCOUNT_ALL_BAL', balance: 1, usdValue: accountUSDBalance});
-
-    return {
-        accountUSDBalance: accountUSDBalance,
-        balancesMap: coinsToUpdate.map(t => [t, coinsToAccountBalances.get(CoinUtils.parseCoinFromTicker(t))])
-    };
-
 }
 
 async function getCoinUsdValue(rc: MainClient, coin: string): Promise<number> {
@@ -141,13 +129,6 @@ async function getCoinUsdValue(rc: MainClient, coin: string): Promise<number> {
     return usdValue;
 }
 
-
-
-function updateAppStateBalances(balancesJson: any) {
-    balanceObj.accountUSDBalance = balancesJson.accountUSDBalance;
-    balanceObj.balancesMap = balancesJson.balancesMap;
-    return balanceObj;
-}
 
 function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
 
@@ -212,17 +193,13 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             }
 
         });
+
         socket.on('balances:requestSingle', function (ticker: string) {
-
-
             const coin = CoinUtils.parseCoinFromTicker(ticker);
-
             const balance = coinsToAccountBalances.get(coin);
-
             if(balance) {
                 sio.emit('balances:singleTicker', balance);
             }
-
         });
 
         socket.on('orders:new-market-order', async (order: any) => {
