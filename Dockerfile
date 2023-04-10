@@ -5,4 +5,4 @@ RUN npm install
 COPY . .
 RUN npm run tsc
 EXPOSE 5001
-CMD ["npm", "run", "dockerStart"]
+CMD ["npm", "start"]

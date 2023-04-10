@@ -6,7 +6,7 @@
   "scripts": {
     "tsc": "tsc",
     "debugapp": "nodemon server.js",
-    "dockerStart": "APIKEY=$MY_APIKEY APISECRET=$MY_API_SECRET APP_PORT=$APP_PORT node App.js"
+    "start": "APIKEY=$MY_APIKEY APISECRET=$MY_API_SECRET APP_PORT=$APP_PORT node App.js"
   },
   "keywords": [],
   "author": "",
