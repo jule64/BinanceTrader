@@ -21,7 +21,7 @@
   <tbody>
     <tr>
       <td>Account value (USD): <data id="acc_totalBalance">waiting for data</data></td>
-      <td>USD Balance: <data id="acc_usdbalance">waiting for data</data></td>
+      <td>USD Balance: <data id="acc_cashbalance">waiting for data</data></td>
       <td>PnL: <data id="acc_pnl">waiting for data</data></td>
     </tr>
   </tbody>
@@ -93,8 +93,6 @@
 
 
 
-
-
     socket.on('prices:update', function (arr) {
 
       const pUpdate = arr[0];
@@ -160,15 +158,15 @@
       const usdBalance = tickerBalance.usdValue;
 
       if (balance !== null) {
-        if (coin === 'BUSD') {
-          document.getElementById('acc_usdbalance').textContent = roundAndFormat(usdBalance);
+        if (coin === 'USDT') {
+          document.getElementById('acc_cashbalance').textContent = roundAndFormat(usdBalance);
         } else if (coin === 'ACCOUNT_ALL_BAL') {
           document.getElementById('acc_totalBalance').textContent = roundAndFormat(usdBalance);
           document.getElementById('acc_pnl').textContent = roundAndFormat(usdBalance - totalFundingUSD);
         } else {
-          const ticker = coin + '/' + 'BUSD';
+          const ticker = coin + '/' + 'USDT';
           document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(usdBalance);
-          document.getElementById('fcoinbalance:' + ticker).textContent = roundAndFormat(balance);
+          document.getElementById('fcoinbalance:' + ticker).textContent = balance;
         }
       }
     });

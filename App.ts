@@ -115,10 +115,10 @@ async function getCoinUsdValue(rc: MainClient, coin: string): Promise<number> {
 
     let usdValue;
 
-    if(coin === 'BUSD'){
+    if(coin === 'USDT'){
         usdValue = 1;
     } else {
-        const usdTicker = coin+'BUSD';
+        const usdTicker = coin+'USDT';
         try {
             const resp: any = await rc.getSymbolPriceTicker({symbol: usdTicker});
             usdValue = resp.price;
@@ -134,7 +134,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
 
     Logger.info("initialising app");
 
-    // we add BUSD as a "ticker". This will give us the cash balance on the account
+    // we add USDT as a "ticker". This will give us the cash balance on the account
     const coinsToUpdate: string[] = appData.tickerWatchlist.concat([appData.accountCcy]);
 
     Logger.info('updating account and coin balances');
@@ -296,7 +296,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
                 const fill = {
                     ticker: CoinUtils.convertFromBinanceTicker(data.symbol),
                     side: data.side === 'BUY' ? 1 : -1,
-                    size: data.quantity,
+                    size: data.lastTradeQuantity,
                 };
                 sio.emit('orders:fill', fill);
             } else if (data.orderStatus === 'CANCELED') {

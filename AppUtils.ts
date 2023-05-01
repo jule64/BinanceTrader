@@ -62,7 +62,7 @@ class CoinUtils {
     }
 
     static convertFromBinanceTicker(binanceTicker: string) {
-        return binanceTicker.split("BUSD")[0]+"/BUSD";
+        return binanceTicker.split("USDT")[0]+"/USDT";
     }
 
     static getNonZeroBalances(rc: MainClient): Promise<AllCoinsInformationResponse[]> {
