@@ -84,7 +84,6 @@
 
     tblTickers.forEach((tkr) => {
       generateTickerRow(socket, tkr, tblbody);
-      subscribeToPriceUpdates(socket, tkr);
       requestCoinBalance(socket, tkr);
     })
 

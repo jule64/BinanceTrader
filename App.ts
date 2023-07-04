@@ -170,26 +170,36 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
     ws.subscribeSpotUserDataStream();
 
     const om = new OrderManager(rc);
+
+
+    function subscribeToPriceUpdates(ws: WebsocketClient, ticker: string) {
+
+        if (!subscribedTickers.includes(ticker)) {
+            try {
+                Logger.log("subscribing to real time price updates for ", ticker);
+                tradeCountsPerMinute.set(ticker, 0);
+                ws.subscribeSpotAggregateTrades(CoinUtils.convertToBinanceTicker(ticker));
+
+                mini24hrTickerStats.set(ticker, {open: ''});
+                ws.subscribeSymbolMini24hrTicker(CoinUtils.convertToBinanceTicker(ticker), "spot");
+                subscribedTickers.push(ticker);
+            } catch (e) {
+                Logger.warn("couldn't subscribe to ticker ", ticker);
+            }
+        }
+    }
+
+    var tickers = appData.tickerWatchlist;
+    tickers.forEach((tkr: string) => {
+      subscribeToPriceUpdates(ws, tkr);
+    })
+
     sio.on('connection', (socket: Socket) => {
 
         Logger.info('received socket connection');
 
         socket.on('prices:subscribe', function (ticker: string) {
-
-            if(!subscribedTickers.includes(ticker)){
-                try {
-                    Logger.log("subscribing to real time price updates for ", ticker);
-                    tradeCountsPerMinute.set(ticker, 0);
-                    ws.subscribeSpotAggregateTrades(CoinUtils.convertToBinanceTicker(ticker));
-
-                    mini24hrTickerStats.set(ticker, {open: ''});
-                    ws.subscribeSymbolMini24hrTicker(CoinUtils.convertToBinanceTicker(ticker), "spot");
-                    subscribedTickers.push(ticker);
-                } catch (e) {
-                    Logger.warn("couldn't subscribe to ticker ", ticker);
-                }
-            }
-
+            subscribeToPriceUpdates(ws, ticker);
         });
 
         socket.on('balances:requestSingle', function (ticker: string) {
