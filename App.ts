@@ -6,7 +6,7 @@ import {
 
 import {isWsSpotUserDataExecutionReportFormatted, isWsAggTradeFormatted, isWs24hrMiniTickerFormattedMessage} from "./typeGuards";
 import {Socket} from "socket.io";
-
+const fs = require('fs');
 const express = require("express");
 const app = express();
 
@@ -27,6 +27,10 @@ if(!apisecret) {
     throw new Error("no api secret provided")
 }
 const appPort = process.env.APP_PORT || 5001
+
+const upalerts = loadAlertsMapFromFile('./resources/upAlerts.json');
+const downalerts = loadAlertsMapFromFile('./resources/downAlerts.json');
+
 
 Logger.info(`Starting app with:`);
 Logger.info(`apikey=${apikey}`);
@@ -52,8 +56,7 @@ const coinsToAccountBalances = new Map(); // Map<coin,{coin: coin, balance: bala
 const Deque = require("collections/deque");
 
 let subscribedTickers: string[] = []
-const upalerts = new Map();
-const downalerts = new Map();
+
 
 const bookCostmap = new Map();
 
@@ -72,6 +75,24 @@ http.listen(appPort, () => {
 
 });
 
+
+function loadAlertsMapFromFile(jsonFilePath: string) {
+
+    var data
+    data = fs.readFileSync(jsonFilePath, 'utf8');
+
+    var res;
+    if (data) {
+        const parsedData = JSON.parse(data);
+        console.log('Successfully read the alerts file from JSON:', parsedData);
+        res = new Map(Object.entries(parsedData));
+    } else {
+        res = new Map();
+    }
+
+    return res;
+
+}
 
 
 function getAlertsForPrice(ticker: string, price: number) {
@@ -194,6 +215,21 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
       subscribeToPriceUpdates(ws, tkr);
     })
 
+    function saveAlertMapToFile(alertsMap: Map<any, any>, toPath: string) {
+
+        const mapObj = Object.fromEntries(alertsMap);
+        const mapStr = JSON.stringify(mapObj);
+
+        fs.writeFile(toPath, mapStr, 'utf8', (err: any) => {
+            if (err) {
+                console.error('An error occurred while writing the Alerts file:', err);
+            } else {
+                console.log('Alerts map has been successfully saved to file');
+            }
+        });
+
+    }
+
     sio.on('connection', (socket: Socket) => {
 
         Logger.info('received socket connection');
@@ -281,11 +317,14 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             const alertsMapToUpdate = alertObj.direction === 'up' ? upalerts : downalerts;
             Logger.log(`setting up ${alertObj.direction} alert for ${alertObj.ticker} @level ${alertObj.alertlevel}`);
             alertsMapToUpdate.set(alertObj.ticker, alertObj.alertlevel);
+            saveAlertMapToFile(alertsMapToUpdate, alertObj.direction === 'up' ? 'resources/upAlerts.json' : 'resources/downAlerts.json');
         });
         socket.on('alerts:cancel-alerts', (ticker: string) => {
             Logger.info(`cancelling all alerts for ${ticker}`);
             upalerts.delete(ticker);
             downalerts.delete(ticker);
+            saveAlertMapToFile(upalerts, 'resources/upAlerts.json');
+            saveAlertMapToFile(downalerts, 'resources/downAlerts.json');
         });
 
 
