@@ -109,11 +109,11 @@
         if (alert.direction === 'up') {
           console.log("up alert triggered for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell-alert-up';
-          Sounds.playSound(Sounds.soundEffects.alertpriceup);
+          SoundEffects.alertpricechangeUp();
         } else if (alert.direction === 'down') {
           console.log("down alert triggered for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell-alert-down';
-          Sounds.playSound(Sounds.soundEffects.alertpricedown);
+          SoundEffects.alertpricechangeDown();
         } else {
           console.log("untriggered alert for ticker ", alert.ticker);
           tickerCell.className = 'ticker-cell';
@@ -179,7 +179,7 @@
       const newBalance = Number(existingBalance) +  Number(fill.size) * fill.side;
       tickerEl.textContent = newBalance.toLocaleString('en-US');
 
-      Sounds.playSound(Sounds.soundEffects.orderfill);
+      SoundEffects.orderfill();
     });
   }
 
@@ -192,7 +192,7 @@
     const alertObj = { ticker: ticker, direction: direction, alertlevel: alertlevel };
     console.log("sending new alert", alertObj);
     socket.emit('alerts:new-alert', alertObj);
-    Sounds.playSound(Sounds.soundEffects.alertSet);
+    SoundEffects.alertSet();
   }
 
   function cancelAlerts(socket, tkr, alertBox) {
@@ -342,7 +342,7 @@
     order = newLimitOrder(tickerName, orderSide, orderSize);
 
     socket.emit('orders:new-limitbook-order', order);
-    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
+    SoundEffects.limitorder();
   }
 
   function newLimitOrder(ticker, side, size) {
@@ -359,44 +359,31 @@
   function cancelOrders(socket, tkr) {
     console.log("cancelling all orders for", tkr);
     socket.emit('orders:cancel-orders', tkr);
-    Sounds.playSound(Sounds.soundEffects.tradeExecLimitOrder);
+    SoundEffects.limitorder();
   }
 
 
 
 
-  class Sounds {
-
-    static soundEffects = {
-      tradeExecMarketOrder: this.marketorder(),
-      tradeExecLimitOrder: this.limitorder(),
-      alertpricedown: this.alertpricechangeDown(),
-      alertpriceup: this.alertpricechangeUp(),
-      orderfill: this.orderfill(),
-      alertSet: this.alertSet()
-    }
-
-    static marketorder() {
-      return this.createSound('./resources/soundeffects/trade_execution/460133__eschwabe3__robot-affirmative.wav', true);
-    }
+  class SoundEffects {
 
     static limitorder() {
-      return this.createSound('./resources/soundeffects/trade_execution/577023__nezuai__ui-sound-14.wav', true);
+      this.playSound(this.createSound('./resources/soundeffects/trade_execution/577023__nezuai__ui-sound-14.wav', true));
     }
 
     static alertpricechangeUp() {
-      return this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav', false)
+      this.playSound(this.createSound('./resources/soundeffects/price_alerts/490202__phonosupf__french-horn-signal-15.wav', false));
     }
 
     static alertpricechangeDown() {
-      return this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav', false);
+      this.playSound(this.createSound('./resources/soundeffects/price_alerts/490238__phonosupf__french-horn-signal-16.wav', false));
     }
     static orderfill() {
-      return this.createSound('./resources/soundeffects/fills/420505__jfrecords__uprising2.wav', true);
+      this.playSound(this.createSound('./resources/soundeffects/fills/420505__jfrecords__uprising2.wav', true));
     }
 
     static alertSet() {
-      return this.createSound('./resources/soundeffects/price_alerts/186669__fordps3__computer-boop.wav');
+      this.playSound(this.createSound('./resources/soundeffects/price_alerts/186669__fordps3__computer-boop.wav'));
     }
     static createSound(soundFile, allowInterruptPlay) {
       return {
