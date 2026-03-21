@@ -64,6 +64,7 @@ const tickersToVolObjs = new Map();
 const MAX_VOLUMES_QUEUE_SIZE = 30
 
 const tradeCountsPerMinute: Map<string, number> = new Map();
+const tradeVolumesPerMinute: Map<string, number> = new Map();
 const mini24hrTickerStats: Map<string, object> = new Map();
 
 
@@ -179,7 +180,13 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
     setInterval(() => {
         sio.emit('tradeStats:update', tradeCountsPerMinute);
         appData.tickerWatchlist.forEach((t: string) => tradeCountsPerMinute.set(t, 0));
-    }, 30000);
+    }, 15000);
+
+    // publish trade volumes every 30 seconds then reset counts for the next 30s cycle
+    setInterval(() => {
+        sio.emit('tradeVolStats:update', tradeVolumesPerMinute);
+        appData.tickerWatchlist.forEach((t: string) => tradeVolumesPerMinute.set(t, 0));
+    }, 15000);
 
 
     // publish 24hour ticker stats every 30 seconds
@@ -199,6 +206,7 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             try {
                 Logger.log("subscribing to real time price updates for ", ticker);
                 tradeCountsPerMinute.set(ticker, 0);
+                tradeVolumesPerMinute.set(ticker, 0);
                 ws.subscribeSpotAggregateTrades(CoinUtils.convertToBinanceTicker(ticker));
 
                 mini24hrTickerStats.set(ticker, {open: ''});
@@ -390,6 +398,8 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
         // update trade counts map
         // @ts-ignore
         tradeCountsPerMinute.set(ticker, tradeCountsPerMinute.get(ticker) + 1);
+        // @ts-ignore
+        tradeVolumesPerMinute.set(ticker, tradeVolumesPerMinute.get(ticker) + priceObj.notional);
 
         sio.emit('prices:update', [priceUpdate, alerts]);
 
@@ -402,19 +412,19 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
 function handlePriceUpdate(priceObj: any) {
 
     const ticker = priceObj.ticker;
-    const volumesObj = getVolumesObj(ticker);
+    // const volumesObj = getVolumesObj(ticker);
 
-    let newSumVol;
-    if(volumesObj.queue.length < MAX_VOLUMES_QUEUE_SIZE){
-        newSumVol = volumesObj.queue.reduce((r: any, v: any) => r + v, 0) + priceObj.notional;
-        updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
-
-    } else {
-        newSumVol = volumesObj.sum - volumesObj.queue.peek() + priceObj.notional;
-        updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
-    }
-
-    const sumVolumes = newSumVol;
+    // let newSumVol;
+    // if(volumesObj.queue.length < MAX_VOLUMES_QUEUE_SIZE){
+    //     newSumVol = volumesObj.queue.reduce((r: any, v: any) => r + v, 0) + priceObj.notional;
+    //     updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
+    //
+    // } else {
+    //     newSumVol = volumesObj.sum - volumesObj.queue.peek() + priceObj.notional;
+    //     updateVolumesObj(volumesObj, priceObj.notional, newSumVol);
+    // }
+    //
+    // const sumVolumes = newSumVol;
 
 
     const bookCost = bookCostmap.get(ticker);
@@ -422,7 +432,7 @@ function handlePriceUpdate(priceObj: any) {
     return {
         ticker: ticker,
         priceObj: priceObj,
-        tradeVolume: sumVolumes,
+        tradeVolume: 0,
         tradesPerSecond: 0,
         bookCost: bookCost == null ? 0 : bookCost
     }

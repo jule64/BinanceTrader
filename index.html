@@ -37,8 +37,8 @@
       <td>Volume30</td> <!-- the sum of the last 30 trades (configurable in Apps.js::handlePriceUpdate) -->
       <td>TC_30s</td> <!-- the trade count in the last 30 seconds -->
       <td>24h%</td>
-      <td>Coins</td>
-      <td>Position</td>
+      <td>Qty</td>
+      <td>Notional</td>
       <td>Size</td>
       <td>Sell</td>
       <td>Buy</td>
@@ -98,7 +98,7 @@
       const ticker = pUpdate.ticker;
       // console.log(ticker, pUpdate.priceObj);
       document.getElementById('fprice:' + ticker).textContent = pUpdate.priceObj.price;
-      document.getElementById('fqty:' + ticker).textContent = Math.round(pUpdate.tradeVolume).toLocaleString('en-US');
+      //document.getElementById('fqty:' + ticker).textContent = Math.round(pUpdate.tradeVolume).toLocaleString('en-US');
       const coinBalance = document.getElementById('fcoinbalance:' + ticker).textContent;
       if(coinBalance){
           document.getElementById('fbalanceUSD:' + ticker).textContent = roundAndFormat(coinBalance * pUpdate.priceObj.price);
@@ -124,6 +124,12 @@
     socket.on('tradeStats:update', function (tradeCounts) { // Map<Ticker, TradeCounts>
       tradeCounts.forEach(([ticker, count]) => {
         document.getElementById('f_tc:' + ticker).textContent = count;
+      });
+    });
+
+    socket.on('tradeVolStats:update', function (tradeVolumes) {
+      tradeVolumes.forEach(([ticker, volume]) => {
+        document.getElementById('fqty:' + ticker).textContent = volume;
       });
     });
 
