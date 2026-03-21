@@ -71,8 +71,29 @@ npm run tsc
 ## 4. Start the app:
 
 ```bash
-APIKEY=your-api-key APISECRET=your-api-secret APP_PORT=5001 node App.js
+APIKEY=your-api-key APISECRET=your-api-secret APP_PORT=5001 READ_ONLY=true node App.js
 ```
+
+Or using npm scripts:
+
+```bash
+# Read-only mode (market data only, no order placement)
+npm run start:readonly
+
+# Full trading mode
+npm start
+```
+
+note: the npm script requires the following env vars set in your shell:
+
+| Variable | Used by      |
+|---|--------------|
+| `BINANCE_READONLY_APIKEY` | `start:readonly` |
+| `BINANCE_READONLY_API_SECRET` | `start:readonly` |
+| `BINANCE_APIKEY` | `start`      |
+| `BINANCE_API_SECRET` | `start`      |
+| `APP_PORT` | example 5001 |
+
 
 Once started head over to `http://localhost:5001/` on your browser to access the app.
 

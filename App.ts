@@ -27,6 +27,7 @@ if(!apisecret) {
     throw new Error("no api secret provided")
 }
 const appPort = process.env.APP_PORT || 5001
+const readOnly = process.env.READ_ONLY === 'true'
 
 const upalerts = loadAlertsMapFromFile('./resources/upAlerts.json');
 const downalerts = loadAlertsMapFromFile('./resources/downAlerts.json');
@@ -195,7 +196,9 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
     }, 30000);
 
 
-    ws.subscribeSpotUserDataStream();
+    if (!readOnly) {
+        ws.subscribeSpotUserDataStream();
+    }
 
     const om = new OrderManager(rc);
 

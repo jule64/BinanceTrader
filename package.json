@@ -6,7 +6,8 @@
   "scripts": {
     "tsc": "tsc",
     "debugapp": "nodemon server.js",
-    "start": "APIKEY=$MY_APIKEY APISECRET=$MY_API_SECRET APP_PORT=$APP_PORT node App.js"
+    "start": "APIKEY=$BINANCE_APIKEY APISECRET=$BINANCE_API_SECRET APP_PORT=$APP_PORT node App.js",
+    "start:readonly": "APIKEY=$BINANCE_READONLY_APIKEY APISECRET=$BINANCE_READONLY_API_SECRET APP_PORT=$APP_PORT READ_ONLY=true node App.js"
   },
   "keywords": [],
   "author": "",
