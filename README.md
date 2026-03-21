@@ -1,123 +1,150 @@
 # Binance Trader
 
-A fast and minimalist web frontend to trade cryptos on Binance®
+A fast, minimalist web frontend for trading cryptocurrencies on Binance®
 
 ![v1.0.png](resources/app_screenshots/v1.0.png)
 (_version 1.0_)
 
 ## Introduction
 
-[Binance](https://www.binance.com/en) is a great crypto exchange with one of the largest selection of crypto assets to buy and sell.
+[Binance](https://www.binance.com/en) is one of the largest cryptocurrency exchanges, offering a wide selection of assets to trade.
 
-However, if you use the site on a regular basis you might notice that their web interface is quite cluncky and slow to use. For example, there is no easy way to display and see live prices of all your favorite cryptos in one view. In addition, buying and selling is slow and cumbersome as you have to open each asset in dedicated windows and enter your trade inputs each time. There is also no price alert functionality so you cannot closely monitor specific price changes such as breakouts/resistance changes.
+However, frequent users of the Binance web interface may find it slow and cumbersome. For example:
 
-All this ultimately gets in the way of the trading workflow and the ability to react and make fast decisions.
+- There is no simple way to view live prices for all your favorite assets in a single, unified view.
+- Buying and selling requires navigating through multiple pages and re-entering trade parameters each time.
+- There is no built-in price alert system, making it difficult to monitor breakouts or key resistance/support levels in real time.
 
-This project aims to fix those issues by providing an alternative trading UI which focuses on fast order placement, real time position monitoring and quick price alerting functionalities - all in one view.
+All of this interrupts the trading workflow and slows down decision-making.
 
+**Binance Trader** addresses these issues by providing an alternative trading UI focused on:
+- Fast order placement  
+- Real-time position monitoring  
+- Quick and configurable price alerts  
 
-## Project history
-
-I originally built this app to trade on the FTX exchange. However, with the exchange going ☠️ in November 2022 I decided to adapt the code to trade on Binance.
-
-This app therefore has the same look and feel and most of the functionalities of the original FTX app and I am adding new features and improvements on a regular basis.
-
-Installation steps and info about the project detailed in sections below. 
-
-Contributions: if you are interested in contributing have a look at the features and bugs listed [here](https://github.com/jule64/BinanceTrader/issues) or feel free to raise a new issue :)
+—all accessible from a single screen.
 
 
 # Installation
 
-## !! WARNINGS !!
+## Important Notes
 
-This app places LIVE trading orders, use it at your own risk!
+This application is capable of placing **live trading orders** when used with trading-enabled Binance API keys.
 
-I do use this app for my own trading however I make **NO GUARANTY as to it's safety for YOUR trading and YOUR FUNDS!** Therefore, if you are considering using this app for your own trading please make sure you understand the code and the risks before attempting to use it.
+If you want to explore or test the app safely, you can start with **read-only Binance API keys**. In this mode, the app will be able to:
+- Fetch real-time market prices
+- Display account balances and positions
 
-Also this app is my own personal project and it is not affiliated with Binance whatsoever. 
+…but it will **not** be able to place orders.
 
-### 1. Pre-requisites
+This project is a personal side project and is **not affiliated with Binance**.
 
-**You will you need your own Binance account and API keys in order to run this app.** Check Binance's [website](https://www.binance.com/en) if you don't have those.
+---
 
-### 2. Clone the project and run `npm install` (this will to download the libraries defined in BinanceTrader/package.json):
+## 1. Prerequisites
 
-```
+You will need:
+- A Binance account
+- Minimum read-only Binance API keys
+
+You can create API keys from your Binance account dashboard.
+
+See the [Binance website](https://www.binance.com/en) for details.
+
+---
+
+## 2. Clone the Project and Install Dependencies
+
+```bash
 git clone https://github.com/jule64/BinanceTrader.git
 cd BinanceTrader
 npm install
 ```
 
-### 3. Compile the Typescript project:
+## 3. Compile the Typescript project:
 
-```
+```bash
 npm run tsc
 ```
 
 
-### 4. Start the app:
+## 4. Start the app:
 
-```
+```bash
 APIKEY=your-api-key APISECRET=your-api-secret APP_PORT=5001 node App.js
 ```
 
 Once started head over to `http://localhost:5001/` on your browser to access the app.
 
-### 5. Account balances (Optional):
+## 5. PnL balance:
 
-If you want your account balances to display correctly in the app you need to update the `totalFunding` variable in the `appData.json` file to your account cash value (note it is zero by default: `"totalFunding": 0`)
+The PnL value displayed in the top right corner of the app requires setting the  `totalFunding` variable in `appData.json` to match your account’s total cash value.
+This variable is set to 0 by default so your PnL will not be correct until you set the value to match the amount of funding of your account.
 
+## Tech Stack
 
-## Tech stack
+- **TypeScript**
+- **Node.js**
+- **Express.js**
+- Lightweight HTML frontend
+- **socket.io** for real-time communication between the web UI and Node.js backend
+- [tiagosiebler’s Binance connectors](https://github.com/tiagosiebler/binance) for:
+  - Real-time market data
+  - Submitting trading orders to Binance
+  - (Supports both mainnet and testnet environments)
 
-This app is built with Typescript, Nodejs and Express.js with a light weight html front end.
-It uses [tiagosiebler](https://github.com/tiagosiebler)'s [Binance connectors](https://github.com/tiagosiebler/binance)
-to get real time prices from Binance and submit trading orders to the exchange.
-It uses `socket.io` for the  communication between the web UI and nodejs backend. 
-
+---
 
 
 ## App Timeline & Features
 
-### 9 July 2023 - Bug fixes and allow price alerts to be persisted & reused between sessions
+### 1 Jan 2026
+- display trade volumes and 24hour price changes
 
 
-### 11 Dec 2022 / v1.0 - First Binance-ready version following revamp from the old FTX App.
+### 9 July 2023
+- Bug fixes
+- Price alerts persisted and reused across sessions
 
-- Contains all the features that existed with the original FTX App except the Pnl module (to be added at a future time)
-- Main features include market/limit orders placement, account and coin balances, price alerts.
-- Also added volume and trade counts stats per coin (see "Volume30" and "TC_30s" columns in the UI)
+### 11 Dec 2022 — v1.0 (First Binance Version)
+- All original features from the FTX app except the PnL module (planned for a future release)
+- Main features:
+  - Market and limit order placement
+  - Account and coin balance display
+  - Price alerts
+  - Volume and trade count statistics per coin  
+    (see `Volume30` and `TC_30s` columns in the UI)
 
+---
 
-### Timeline and screenshots from the original FTX APP:
+## Original FTX App Timeline & Screenshots
 
-### 25 Sep 22 / v1.2 - Added Limit orders and some bug fixes
+### 25 Sep 2022 — v1.2
+- Added limit orders
+- Bug fixes
 
-### 26 June 22 / v1.1 - Improvements on version 1  
-- cleaner Front end with a FTX-like color theme
-- added account balances section at the top of the app
-- flashing alerts: as well as the sound effect from v1 now the ticker cells flash red or green on alerts  
-- intelligent alerting: The alerts automatically stop flashing and stop play sound when the price crosses the alert threshold
-back in the non-alert price zone
-- single position balance updates: update a given position immediately after order is successfully executed
-- added a Coins column in main table to display positions in coins next to usd-equivalent positions
-- new "Add ticker" input box: add a new ticker to the main table.  note the tickers are not yet persistent so they disappear
-from the main table on app restart (persistence to be added in next version of the app)
+### 26 June 2022 — v1.1
+- Improved frontend with an FTX-style color theme
+- Account balances displayed at the top of the app
+- Visual flashing alerts (red/green) in addition to sound alerts
+- Intelligent alerting:
+  - Alerts automatically stop when the price re-enters the non-alert range
+- Immediate position updates after successful order execution
+- Added a **Coins** column to display coin balances alongside USD-equivalent values
+- Added an **Add ticker** input to dynamically add symbols  
+  *(Note: tickers were not yet persistent and reset on app restart)*
 
-![v1.1.png](resources/app_screenshots/old_app/v1.1.png) 
-
+![v1.1.png](resources/app_screenshots/old_app/v1.1.png)  
 (_v1.1 screenshot_)
 
-### 15 June 22 / v1.0 - First working version  
-- display real time prices and volumes from the exchange
-- place market orders
-- position display
-- alert setup with sound effects
+### 15 June 2022 — v1.0
+- First working version
+- Real-time price and volume display
+- Market order placement
+- Position tracking
+- Price alerts with sound notifications
 
-![v1.png](resources/app_screenshots/old_app/v1.png)
-
+![v1.png](resources/app_screenshots/old_app/v1.png)  
 (_v1 screenshot_)
-
 
 
