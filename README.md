@@ -5,6 +5,8 @@ A fast, minimalist web frontend for trading cryptocurrencies on Binance®
 ![v1.0.png](resources/app_screenshots/v1.0.png)
 (_version 1.0_)
 
+## 🔥 Now built with [Claude Code](https://claude.ai/code)! 🔥
+
 ## Introduction
 
 [Binance](https://www.binance.com/en) is one of the largest cryptocurrency exchanges, offering a wide selection of assets to trade.
@@ -118,6 +120,12 @@ This variable is set to 0 by default so your PnL will not be correct until you s
 
 
 ## App Timeline & Features
+
+### 23 Mar 2026 — built with [Claude Code](https://claude.ai/code)
+- Read-only mode (`READ_ONLY=true`) — safely run the app with read-only API keys, skipping the user data stream
+- Persistent ticker watchlist — tickers added via the UI are now saved to `appData.json` and survive restarts
+- Improved npm start scripts with named env vars (`BINANCE_APIKEY`, `BINANCE_READONLY_APIKEY`, etc.)
+- Architecture diagram
 
 ### 1 Jan 2026
 - display trade volumes and 24hour price changes
