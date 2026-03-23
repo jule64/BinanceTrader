@@ -330,6 +330,16 @@ function initApp(sio: Socket, ws: WebsocketClient, rc: MainClient) {
             alertsMapToUpdate.set(alertObj.ticker, alertObj.alertlevel);
             saveAlertMapToFile(alertsMapToUpdate, alertObj.direction === 'up' ? 'resources/upAlerts.json' : 'resources/downAlerts.json');
         });
+        socket.on('watchlist:add-ticker', (ticker: string) => {
+            if (!appData.tickerWatchlist.includes(ticker)) {
+                appData.tickerWatchlist.push(ticker);
+                fs.writeFile('./resources/appData.json', JSON.stringify(appData, null, 2), 'utf8', (err: any) => {
+                    if (err) Logger.warn('Failed to save watchlist', err);
+                    else Logger.info('Watchlist saved', null);
+                });
+            }
+        });
+
         socket.on('alerts:cancel-alerts', (ticker: string) => {
             Logger.info(`cancelling all alerts for ${ticker}`);
             upalerts.delete(ticker);

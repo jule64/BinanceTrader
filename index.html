@@ -231,6 +231,7 @@
     generateTickerRow(socket, tkr, getTableBodyMainTbl());
     subscribeToPriceUpdates(socket, tkr);
     requestCoinBalance(socket, tkr);
+    socket.emit('watchlist:add-ticker', tkr);
   }
 
   function generateTickerRow(socket, tkr, tblbody) {
