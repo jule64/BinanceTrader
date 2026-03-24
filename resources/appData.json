@@ -1,5 +1,16 @@
 {
-  "tickerWatchlist": ["BTC/USDT", "ETH/USDT", "DOT/USDT", "LINK/USDT","UNI/USDT", "WLD/USDT"],
+  "tickerWatchlist": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "DOT/USDT",
+    "LINK/USDT",
+    "UNI/USDT",
+    "WLD/USDT",
+    "ADA/USDT",
+    "XLM/USDT",
+    "SKY/USDT"
+  ],
   "totalFunding": 10000,
-  "accountCcy": "USDT"
+  "accountCcy": "USDT",
+  "maxOrderSizePct": 0.20
 }

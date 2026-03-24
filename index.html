@@ -67,6 +67,9 @@
 
 <script>
 
+  var tblTickers;
+  var maxOrderSizePct;
+
   getAppData().then(data => startApp(data));
 
   function getAppData() {
@@ -78,6 +81,7 @@
     const socket = io();
 
     const totalFundingUSD = appData.totalFunding;
+    maxOrderSizePct = appData.maxOrderSizePct || 0.20;
     tblTickers = appData.tickerWatchlist;
 
     var tblbody = getTableBodyMainTbl();
@@ -319,11 +323,28 @@
 
   }
 
+  function checkOrderSizeGuard(tickerName, orderSize) {
+    const price = parseFloat(document.getElementById('fprice:' + tickerName).textContent);
+    const accountBalanceText = document.getElementById('acc_totalBalance').textContent;
+    const accountBalance = parseFloat(accountBalanceText.replace(/,/g, ''));
+
+    if (!price || !accountBalance) return true;
+
+    const notional = orderSize * price;
+    if (notional > maxOrderSizePct * accountBalance) {
+      const pct = (100 * notional / accountBalance).toFixed(1);
+      const notionalFmt = Math.round(notional).toLocaleString('en-US');
+      return confirm(`Warning: this order is ${pct}% of your account balance ($${notionalFmt}). Proceed?`);
+    }
+    return true;
+  }
+
   function placeMarketOrder(socket, tickerName, orderSize, orderSide) {
     if (orderSize === ""){
       alert("Enter order size");
       return null;
     }
+    if (!checkOrderSizeGuard(tickerName, orderSize)) return null;
 
     order = newMarketOrder(tickerName, orderSide, orderSize);
 
@@ -345,6 +366,7 @@
       alert("Enter order size");
       throw "Enter order size"
     }
+    if (!checkOrderSizeGuard(tickerName, orderSize)) return;
 
     order = newLimitOrder(tickerName, orderSide, orderSize);
 
